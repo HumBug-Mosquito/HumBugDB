@@ -1,0 +1,26 @@
+# This file may be used to create an environment using:
+# $ conda create --name <env> --file <this file>
+# platform: win-64
+absl-py=0.9.0=py37_0
+intel-openmp=2020.0=166
+keras-applications=1.0.8=py_0
+keras-base=2.3.1=py37_0
+keras-gpu=2.3.1=0
+keras-preprocessing=1.1.0=py_1
+m2w64-gcc-libgfortran=5.3.0=6
+m2w64-gcc-libs=5.3.0=7
+m2w64-gcc-libs-core=5.3.0=7
+m2w64-gmp=6.1.0=2
+m2w64-libwinpthread-git=5.0.0.4634.697f757=2
+mkl-service=2.3.0=py37hb782905_0
+more-itertools=8.6.0=pypi_0
+msys2-conda-epoch=20160418=1
+numpy-base=1.18.1=py37hc3f5095_1
+prompt-toolkit=3.0.4=py_0
+python-dateutil=2.8.1=py_0
+scikit-image=0.17.2=pypi_0
+scikit-learn=0.22.2.post1=pypi_0
+tensorflow-base=1.14.0=gpu_py37h55fc52a_0
+tensorflow-estimator=1.14.0=py_0
+tensorflow-gpu=1.14.0=h0d30ee6_0
+webrtcvad-wheels=2.0.10.post2=pypi_0

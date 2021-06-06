@@ -1,0 +1,7 @@
+conda create -name PyTorch
+conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
+conda install -c conda-forge -y ffmpeg
+conda install -c conda-forge -y librosa
+
+pip install pandas
+pip install scikit-image
