@@ -2,7 +2,7 @@ import os
 # Configuration file for parameters
 
 # Data directories
-data_df = '../data/metadata/neurips_2021_v4.csv'
+data_df = '../data/metadata/neurips_2021_zenodo_0_0_1.csv'
 data_dir = '../data/audio/'
 plot_dir = '../outputs/plots/'
 
