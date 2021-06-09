@@ -12,12 +12,14 @@ The code is written with compatibility for PyTorch and Keras (GPU), depending on
 Keras requirements are given in `condarequirementsKeras.txt` and `piprequirementsKeras.txt`. 
 
 After installation of requirements, the code can be run by cloning the repository:
-`git clone https://github.com/HumBug-Mosquito/HumBugDB.git`
+`git clone https://github.com/HumBug-Mosquito/HumBugDB.git`.
 
-Audio from the four-part-archive should be extracted from [Zenodo](https://zenodo.org/record/4904800) to `/data/audio/`
+Audio from the four-part-archive should be extracted from [Zenodo](https://zenodo.org/record/4904800) to `/data/audio/`.
 
-# Reproducibility
-We include the three models trained in the paper (@reviewers: WIP) for reproducibility in the first release of this code (due to the large sizes of the models). The plots of the paper are present in `outputs/plots/` for the respective models and test sets. 
+If you wish to use the trained models, download the binaries from release `v1.0`, and place the models in `/outputs/models/keras/` or `/outputs/models/pytorch` for the respective libraries. Note that for compatibility, features are required to be extracted with the default settings of the repository.
+
+# v1.0 reproducible research release
+We include the four models trained in the paper (and an additional improvement for Keras) for reproducibility in release `v1.0`. The plots of the paper are present in `outputs/plots/neurips_2021_reproducibility` for the respective models and test sets. 
 
 # Code structure
 `notebooks` contain `main.ipynb` and `supplement.ipynb` for the main code and supplementary code used to generate Figures in the Appendix.
