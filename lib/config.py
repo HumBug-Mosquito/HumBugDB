@@ -2,13 +2,15 @@ import os
 # Configuration file for parameters
 
 # Data directories
-data_df = '../data/metadata/neurips_2021_zenodo_0_0_1.csv'
-data_dir = '../data/audio/'
-plot_dir = '../outputs/plots/'
+data_df = os.path.join(os.path.pardir, 'data', 'metadata', 'neurips_2021_zenodo_0_0_1.csv')
+# data_df = os.path.join(os.path.pardir, 'data', 'metadata', 'db_10_06_21_inc_false_positives.csv')
+data_dir = os.path.join(os.path.pardir, 'data', 'audio')
+plot_dir = os.path.join(os.path.pardir, 'outputs',  'plots')
+model_dir = os.path.join(os.path.pardir, 'outputs', 'models') # Model sub-directory created in config_keras or config_pytorch
 
 # Librosa settings
 # Feature output directory
-dir_out = '../outputs/features/'
+dir_out = os.path.join(os.path.pardir, 'outputs', 'features')
 rate = 8000
 win_size = 30
 step_size = 5
@@ -16,6 +18,9 @@ n_feat = 128
 NFFT = 2048
 n_hop = NFFT/4
 frame_duration = n_hop/rate # Frame duration in ms
+# Normalisation
+norm_per_sample = True
+
 
 # Calculating window size based on desired min duration (sample chunks)
 # default at 8000Hz: 2048 NFFT -> NFFT/4 for window size = hop length in librosa.
@@ -25,7 +30,7 @@ frame_duration = n_hop/rate # Frame duration in ms
 min_duration = win_size * frame_duration # Change to match 1.92 (later)
 
 # Create directories if they do not exist:
-for directory in [plot_dir, dir_out]:
+for directory in [plot_dir, dir_out, model_dir]:
 	if not os.path.isdir(directory):
 		os.mkdir(directory)
 		print('Created directory:', directory)

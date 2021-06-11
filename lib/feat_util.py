@@ -9,7 +9,7 @@ import math
 
 # Extract features from wave files with id corresponding to dataframe data_df.
 
-def get_feat(data_df, data_dir, rate, min_duration, n_feat, norm_per_sample=True):
+def get_feat(data_df, data_dir, rate, min_duration, n_feat):
     ''' Returns features extracted with Librosa. A list of features, with the number of items equal to the number of input recordings'''
     X = []
     y = []
@@ -28,7 +28,7 @@ def get_feat(data_df, data_dir, rate, min_duration, n_feat, norm_per_sample=True
                 signal, rate = librosa.load(filename, sr=rate)
                 feat = librosa.feature.melspectrogram(signal, sr=rate, n_mels=n_feat)            
                 feat = librosa.power_to_db(feat, ref=np.max)
-                if norm_per_sample:
+                if config.norm_per_sample:
                     feat = (feat-np.mean(feat))/np.std(feat)                
                 X.append(feat)
                 if row['sound_type'] == 'mosquito':
@@ -104,9 +104,9 @@ def reshape_feat(feats, labels, win_size, step_size):
 
 def get_train_test_from_df(df_train, df_test_A, df_test_B, debug=False):
     
-    pickle_name_train = 'log_mel_feat_train_' + str(config.n_feat) +  '_win_' + str(config.win_size) + '_step_' + str(config.step_size) + '.pickle'
+    pickle_name_train = 'log_mel_feat_train_'+str(config.n_feat)+'_win_'+str(config.win_size)+'_step_'+str(config.step_size)+'_norm_'+str(config.norm_per_sample)+'.pickle'
      # step = window for test (no augmentation of test):
-    pickle_name_test = 'log_mel_feat_test_' + str(config.n_feat) +  '_win_' + str(config.win_size) + '_step_' + str(config.win_size) + '.pickle'
+    pickle_name_test = 'log_mel_feat_test_'+str(config.n_feat)+'_win_'+str(config.win_size)+'_step_'+str(config.win_size)+'_norm_'+str(config.norm_per_sample)+'.pickle'
     
     if not os.path.isfile(os.path.join(config.dir_out, pickle_name_train)):
         print('Extracting training features...')
@@ -121,7 +121,7 @@ def get_train_test_from_df(df_train, df_test_A, df_test_B, debug=False):
             print('Bugs train', bugs_train)
         
         with open(os.path.join(config.dir_out, pickle_name_train), 'wb') as f:
-            pickle.dump(log_mel_feat_train, f)
+            pickle.dump(log_mel_feat_train, f, protocol=4)
             print('Saved features to:', os.path.join(config.dir_out, pickle_name_train))
 
     else:
@@ -151,7 +151,7 @@ def get_train_test_from_df(df_train, df_test_A, df_test_B, debug=False):
 
         
         with open(os.path.join(config.dir_out, pickle_name_test), 'wb') as f:
-            pickle.dump(log_mel_feat_test, f)
+            pickle.dump(log_mel_feat_test, f, protocol=4)
             print('Saved features to:', os.path.join(config.dir_out, pickle_name_test))
     else:
         print('Loading test features found at:', os.path.join(config.dir_out, pickle_name_test))
@@ -172,7 +172,7 @@ def get_train_test_from_df(df_train, df_test_A, df_test_B, debug=False):
 def get_test_from_df(df_test_A, df_test_B, debug=False):
     
 
-    pickle_name_test = 'log_mel_feat_test_' + str(config.n_feat) +  '_win_' + str(config.win_size) + '_step_' + str(config.win_size) + '.pickle'
+    pickle_name_test = 'log_mel_feat_test_'+str(config.n_feat)+'_win_'+str(config.win_size)+'_step_'+str(config.win_size)+'_norm_'+str(config.norm_per_sample)+'.pickle'
     
     
     if not os.path.isfile(os.path.join(config.dir_out, pickle_name_test)):

@@ -6,9 +6,11 @@ import torch
 import torch.optim as optim
 import numpy as np
 from sklearn.metrics import accuracy_score
+import config
 import config_pytorch
 from datetime import datetime
 import os
+
 
 
 class ResnetDropoutFull(nn.Module):
@@ -131,14 +133,13 @@ def train_model(x_train, y_train, x_val=None, y_val=None, model = ResnetDropoutF
             acc_metric = train_acc
             best_acc_metric = best_train_acc
         if acc_metric > best_acc_metric:  
-            if checkpoint_name is not None:
-                os.path.join(os.path.pardir, 'models', 'pytorch/ResNet18', checkpoint_name)
+            # if checkpoint_name is not None:
+                # os.path.join(os.path.pardir, 'models', 'pytorch', checkpoint_name)
 
             checkpoint_name = f'model_e{e}_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}.pth'
 
-            ##TODO: no restrictly necessary, can just hold the model in memory until early stopping finishes.
-            torch.save(model.state_dict(), os.path.join(os.path.pardir, 'models', 'pytorch/ResNet50', checkpoint_name))
-            print('Saving model to:', os.path.join(os.path.pardir, 'models', 'pytorch/ResNet50', checkpoint_name)) 
+            torch.save(model.state_dict(), os.path.join(config.model_dir, 'pytorch', checkpoint_name))
+            print('Saving model to:', os.path.join(config.model_dir, 'pytorch', checkpoint_name)) 
             best_epoch = e
             best_train_acc = train_acc
             best_train_loss = train_loss
@@ -196,7 +197,7 @@ def test_model(model, test_loader, criterion, class_threshold=0.5, device=None):
     
     return test_loss, test_acc
 
-def load_model(checkpoint_name):
+def load_model(filepath):
     # Instantiate model to inspect
     device = torch.device('cuda:0' if torch.cuda.is_available() else torch.device("cpu"))
     print(f'Training on {device}')
@@ -214,7 +215,7 @@ def load_model(checkpoint_name):
     else:
         map_location='cpu'
         
-    checkpoint = model.load_state_dict(torch.load(os.path.join(os.path.pardir, 'models', 'pytorch', checkpoint_name)))
+    checkpoint = model.load_state_dict(torch.load(filepath))
 
     return model
 

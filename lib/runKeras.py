@@ -14,12 +14,14 @@ from keras.models import load_model
 from keras.layers import Conv2D, MaxPooling2D
 from keras.regularizers import l2
 import os
+from datetime import datetime
 
-def train_model(X_train, y_train):
+def train_model(X_train, y_train, X_val=None, y_val=None, start_from=None):
 
 
 	y_train = tf.keras.utils.to_categorical(y_train, 2)
-
+	if y_val is not None:
+		y_val = tf.keras.utils.to_categorical(y_val, 2)
 
 
 	################################ CONVOLUTIONAL NEURAL NETWORK ################################
@@ -88,31 +90,37 @@ def train_model(X_train, y_train):
 	                metrics=['accuracy'])
 
 
-
+	if start_from is not None:
+		model = load_model(start_from)
+		print('Starting from model', start_from)
 
     # if checkpoint_name is not None:
     # 	os.path.join(os.path.pardir, 'models', 'keras', checkpoint_name)
 
-	model_name = 'Win_' + str(config.win_size) + '_Stride_' + str(config.step_size) + '_BNN.h5' 
-	checkpoint_filepath = os.path.join(os.path.pardir, 'models/keras', model_name) # Need to makedir there too.
-	model_checkpoint_callback = ModelCheckpoint(
-	    filepath=checkpoint_filepath,
-	    save_weights_only=False,
-	    monitor='val_accuracy',
-	    mode='max',
-	    save_best_only=True)
+	if X_val is None:
+		metric = 'accuracy'
+		val_data = None
+	else:
+		metric = 'val_accuracy'
+		val_data = (X_val, y_val)
 
-	model.fit(x=X_train, y=y_train, batch_size=config_keras.batch_size, epochs=config_keras.epochs, verbose=1,  validation_split=config_keras.validation_split,
-          validation_data=None,
-          shuffle=True, class_weight=class_weight, sample_weight=None, initial_epoch=0,
-          steps_per_epoch=None, validation_steps=None, callbacks=[model_checkpoint_callback])
+	model_name = 'Win_' + str(config.win_size) + '_Stride_' + str(config.step_size) + '_'
+	model_name = model_name + datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + '-e{epoch:02d}' + metric + '{' + metric + ':.4f}.hdf5'
+	# model_name = model_name + datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + '-e{epoch:02d}.hdf5'
+	checkpoint_filepath = os.path.join(config.model_dir, 'keras',  model_name)
+	model_checkpoint_callback = ModelCheckpoint(filepath=checkpoint_filepath,save_weights_only=False,
+		monitor=metric,
+		mode='max',
+		save_best_only=False)
+
+	model.fit(x=X_train, y=y_train, batch_size=config_keras.batch_size, epochs=config_keras.epochs, verbose=1,
+		validation_data=val_data,
+		shuffle=True, class_weight=class_weight, sample_weight=None, initial_epoch=0,
+		steps_per_epoch=None, validation_steps=None, callbacks=[model_checkpoint_callback])
 
 
-	# print('Saving model to:', os.path.join(os.path.pardir, 'models', 'keras', checkpoint_name))
-
-
+	
 	return model
-
 
 def evaluate_model(model, X_test, y_test, n_samples):
 	all_y_pred = []
