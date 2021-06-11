@@ -1,5 +1,7 @@
 # HumBugDB
-Acoustic mosquito detection code with Bayesian Neural Networks
+Acoustic mosquito detection with Bayesian Neural Networks.
+
+By Ivan Kiskin. Contact `ivankiskin1@gmail.com` for enquiries or suggestions.
 
 # General use instructions
 This code is complementary to the paper: HumBugDB: a large-scale acoustic mosquito dataset [currently under review](https://neurips.cc/Conferences/2021/CallForDatasetsBenchmarks#:~:text=NeurIPS%202021%20Datasets%20and%20Benchmarks,how%20to%20improve%20dataset%20development.), and the dataset on [Zenodo](https://zenodo.org/record/4904800).
