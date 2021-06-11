@@ -1,0 +1,9 @@
+v1.0 release: in paper first submission.
+
+*Changed Keras to accept X_val like PyTorch, and not rely on validation split -> config.validation_split removed 
+	*both libraries now support X_val, y_val as optional parameters, and will checkpoint according to either the val metric or acc metric depending if those are supplied
+*Changed output directory format to use os.path.pardir to remove OS dependency.
+*Changed to standardise model saving code
+*Changed model loading to take full path, to easier load models from other repos/directories
+*Added supplementary material for manipulating dataframes. Note that without the audio for the new metadata, the notebook `supplement.ipynb` will not run. Data cannot be released from the new metadata for privacy reasons.
+
