@@ -170,3 +170,86 @@ def plot_confusion_matrix(cm, classes, std, filename=None,
     fig.tight_layout()
     plt.savefig(os.path.join(config.plot_dir, filename + '_cm.pdf' ))
     return ax
+
+
+
+# Define confusion matrix, should be optimised for colour scheme and visual presentation later
+def plot_confusion_matrix_multiclass(cnf_matrix_unnorm, title, classes):
+  cnf_matrix = cnf_matrix_unnorm/cnf_matrix_unnorm.sum(1)
+  fig = plt.figure(figsize=(15, 8))
+  plt.imshow(cnf_matrix, cmap=plt.cm.Blues) #plot confusion matrix grid
+  threshold = cnf_matrix.max() / 2 #threshold to define text color
+  for i in range(cnf_matrix.shape[0]): #print text in grid
+      for j in range(cnf_matrix.shape[1]): 
+          plt.text(j-0.2, i, cnf_matrix_unnorm[i,j], color="w" if cnf_matrix[i,j] > threshold else 'black')
+  tick_marks = np.arange(len(classes)) #define labeling spacing based on number of classes
+  plt.xticks(tick_marks, classes, rotation=45)
+  plt.yticks(tick_marks, classes)
+  plt.ylabel('True label')
+  plt.title(title)
+  plt.xlabel('Predicted label')
+#   plt.colorbar(label='Accuracy')
+  plt.tight_layout()
+  
+  return fig
+
+from tensorflow.keras.utils import to_categorical  # Probably best to re-write to remove dependence on Keras for evaluate.py
+# Could also copy source code here: https://github.com/keras-team/keras/blob/master/keras/utils/np_utils.py#L9
+from itertools import cycle
+
+def compute_plot_roc_multiclass(y_true, y_pred_prob, classes, title=None):
+    '''y_true: non-categorical y label. y_pred_prob: model.predict output of NN. '''
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+    for i in range(len(classes)):
+        fpr[i], tpr[i], _ = sklearn.metrics.roc_curve(to_categorical(y_true)[:, i], y_pred_prob[:, i])
+        roc_auc[i] = sklearn.metrics.auc(fpr[i], tpr[i])
+
+    # Compute micro-average ROC curve and ROC area
+    fpr["micro"], tpr["micro"], _ = sklearn.metrics.roc_curve(to_categorical(y_true).ravel(), y_pred_prob.ravel())
+    roc_auc["micro"] = sklearn.metrics.auc(fpr["micro"], tpr["micro"])
+    print('BNN')
+    print(roc_auc)
+    lw=2
+    # First aggregate all false positive rates
+    all_fpr = np.unique(np.concatenate([fpr[i] for i in range(len(classes))]))
+
+    # Then interpolate all ROC curves at this points
+    mean_tpr = np.zeros_like(all_fpr)
+    for i in range(len(classes)):
+        mean_tpr += np.interp(all_fpr, fpr[i], tpr[i])
+
+    # Finally average it and compute AUC
+    mean_tpr /= len(classes)
+
+    fpr["macro"] = all_fpr
+    tpr["macro"] = mean_tpr
+    roc_auc["macro"] = sklearn.metrics.auc(fpr["macro"], tpr["macro"])
+
+    # Plot all ROC curves
+    plt.figure()
+    plt.plot(fpr["micro"], tpr["micro"],
+             label='micro-average ROC curve (area = {0:0.3f})'
+                   ''.format(roc_auc["micro"]),
+             color='deeppink', linestyle=':', linewidth=4)
+
+    plt.plot(fpr["macro"], tpr["macro"],
+             label='macro-average ROC curve (area = {0:0.3f})'
+                   ''.format(roc_auc["macro"]),
+             color='navy', linestyle=':', linewidth=4)
+
+    colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
+    for i, color in zip(range(len(classes)), colors):
+        plt.plot(fpr[i], tpr[i], color=color, lw=lw,
+                 label='ROC curve of class {0} (area = {1:0.3f})'
+                 ''.format(i, roc_auc[i]))
+
+    plt.plot([0, 1], [0, 1], 'k--', lw=lw)
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(title)
+    plt.legend(loc="lower right")
+    plt.show()
