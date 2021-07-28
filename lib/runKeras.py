@@ -1,38 +1,36 @@
 import tensorflow as tf
 import config_keras
 import config
-from keras.utils import to_categorical
 # Deep learning
 # Keras-related imports
 from keras.models import Sequential
 from keras.layers import Lambda, Dense, Dropout, Activation, Flatten, LSTM
 from keras.layers import Convolution1D, MaxPooling2D, Convolution2D
 from keras import backend as K
-# K.set_image_dim_ordering('th')
+K.set_image_data_format('channels_first')
 from keras.callbacks import ModelCheckpoint, RemoteMonitor, EarlyStopping
 from keras.models import load_model
 from keras.layers import Conv2D, MaxPooling2D
 from keras.regularizers import l2
+from keras.optimizers import Adadelta
 import os
 from datetime import datetime
 
-def train_model(X_train, y_train, X_val=None, y_val=None, start_from=None):
+def train_model(X_train, y_train, X_val=None, y_val=None, class_weight=None, start_from=None):
 
 
-	y_train = tf.keras.utils.to_categorical(y_train, 2)
+	y_train = tf.keras.utils.to_categorical(y_train)
 	if y_val is not None:
-		y_val = tf.keras.utils.to_categorical(y_val, 2)
+		y_val = tf.keras.utils.to_categorical(y_val)
 
 
 	################################ CONVOLUTIONAL NEURAL NETWORK ################################
 	## NN parameters
-	class_weight = {0: 1.,
-	                1: 1.,
-	                }
-	input_shape = (1, X_train.shape[2], X_train.shape[-1])
+
+	input_shape = (1, X_train.shape[2], X_train.shape[-1]) # Input shape for channels_first
 
 	# BNN parameters
-	dropout=config_keras.dropout  # change to 0.05
+	dropout=config_keras.dropout  
 	# Regularise
 	tau = config_keras.tau
 	lengthscale = config_keras.lengthscale
@@ -40,15 +38,17 @@ def train_model(X_train, y_train, X_val=None, y_val=None, start_from=None):
 
 	W_regularizer=l2(reg)  # regularisation used in layers
 
+	# Initialise optimiser for consistent results across Keras/TF versions
+	opt = Adadelta(learning_rate=config_keras.learning_rate, rho=config_keras.rho, epsilon=config_keras.epsilon) 
+
 	model = Sequential()
 	n_dense = 128
-	nb_classes = 2
+	nb_classes = y_train.shape[1]
 	# number of convolutional filters
 	nb_conv_filters = 32
 	# num_hidden = 236
 	nb_conv_filters_2 = 64
-	convout1 = Activation('relu')
-	convout2 = Activation('relu')
+
 
 	model.add(Conv2D(nb_conv_filters, kernel_size = (3,3),
 	     activation = 'relu', padding = 'valid', strides = 1,
@@ -84,9 +84,9 @@ def train_model(X_train, y_train, X_val=None, y_val=None, start_from=None):
 	model.add(Lambda(lambda x: K.dropout(x,level=dropout)))
 
 
-	model.add(Dense(nb_classes, activation='softmax',W_regularizer=l2(reg)))
+	model.add(Dense(nb_classes, activation='softmax', kernel_regularizer=l2(reg)))
 	model.compile(loss='categorical_crossentropy',
-	                optimizer='adadelta',
+	                optimizer=opt,
 	                metrics=['accuracy'])
 
 
