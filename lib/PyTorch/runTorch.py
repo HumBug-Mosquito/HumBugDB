@@ -1,4 +1,4 @@
-from ResNetDropoutSource import resnet50dropout, resnet18
+from PyTorch.ResNetDropoutSource import resnet50dropout, resnet18
 from torch.utils.data import TensorDataset, DataLoader
 import torch.nn.functional as F
 import torch.nn as nn
@@ -7,7 +7,7 @@ import torch.optim as optim
 import numpy as np
 from sklearn.metrics import accuracy_score
 import config
-import config_pytorch
+from PyTorch import config_pytorch
 from datetime import datetime
 import os
 
