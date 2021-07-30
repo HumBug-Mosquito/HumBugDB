@@ -1,0 +1,6 @@
+# Saved models, to be added if too large, ignore all except paper models (commented out)
+*.hdf5
+*.h5
+#!neurips_2021_humbugdb_keras_bnn_best.hdf5
+#!neurips_2021_humbugdb_keras_bnn.hdf5
+#!neurips_2021_humbugdb_supplement_TestB_keras_bnn.hdf5

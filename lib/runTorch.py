@@ -20,7 +20,7 @@ class ResnetDropoutFull(nn.Module):
         self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
         # self.resnet = resnet18(pretrained=config_pytorch.pretrained)
         self.dropout = dropout
-        ##Remove final linear layer
+        ##Remove final linear layer (using [-1])
         self.resnet = nn.Sequential(*(list(self.resnet.children())[:-1]))
         self.fc1 = nn.Linear(2048, 1)  # 512 for resnet18, resnet34, 2048 for resnet50. Determine from x.shape() before fc1 layer
 #         self.apply(_weights_init)
@@ -28,7 +28,7 @@ class ResnetDropoutFull(nn.Module):
         x = self.resnet(x).squeeze()
 #         x = self.fc1(x)
         # print(x.shape)
-        x = self.fc1(F.dropout(x, p=self.dropout))
+        x = self.fc1(F.dropout(x, p=self.dropout)) # single layer we've added to the pretrained net?
         x = torch.sigmoid(x)
         return x
 
