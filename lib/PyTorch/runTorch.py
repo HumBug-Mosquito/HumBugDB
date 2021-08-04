@@ -21,6 +21,7 @@ class ResnetDropoutFull(nn.Module):
         self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
         # self.resnet = resnet18(pretrained=config_pytorch.pretrained)
         self.dropout = dropout
+        self.n_channels = 3  # For building data correctly with dataloaders. Check if 1 works with pretrained=False
         ##Remove final linear layer
         self.resnet = nn.Sequential(*(list(self.resnet.children())[:-1]))
         self.fc1 = nn.Linear(2048, 1)  # 512 for resnet18, resnet34, 2048 for resnet50. Determine from x.shape() before fc1 layer
@@ -39,19 +40,13 @@ class VGGishDropout(nn.Module):
         self.model_urls = config_pytorch.vggish_model_urls
         self.vggish = VGGish(self.model_urls, postprocess=False, preprocess=preprocess)
         self.dropout = dropout
+        self.n_channels = 1  # For building data correctly with dataloaders
         self.fc1 = nn.Linear(128, 1)
     def forward(self, x):
         n_segments = x.shape[1]
         ##(Batch, Segments, C, H, W) -> (Batch*Segments, C, H, W)
         x = x.view(-1, 1, 96, 64)
         x = self.vggish.forward(x)
-        ##(Batch*Segments, Embedding) -> (Batch, Segments, Embedding)
-        # print('Shape in forward of x before mean:', np.shape(x))
-        # x = x.view(-1, n_segments, 128)
-        # print('Reshaped to -1, n_segments, 128:', np.shape(x))
-        # ##TODO: Better solution than mean (RNN?)
-        # x = torch.mean(x, axis=1)
-        # print('After taking mean, axis =1:', np.shape(x))
         x = self.fc1(F.dropout(x, p=self.dropout))
         x = torch.sigmoid(x)
         return x
@@ -59,55 +54,18 @@ class VGGishDropout(nn.Module):
 
 
 
-
-class ResnetDropoutFullMultiClass(nn.Module):
-    def __init__(self, dropout=0.2):
-#     def __init__(self):
-        super(ResnetDropoutFullMultiClass, self).__init__()
-        self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
-        # self.resnet = resnet18(pretrained=config_pytorch.pretrained)
-        self.dropout = dropout
-        ##Remove final linear layer
-        self.resnet = nn.Sequential(*(list(self.resnet.children())[:-1]))
-        self.fc1 = nn.Linear(2048, config_pytorch.n_classes)  # 512 for resnet18, resnet34, 2048 for resnet50. Determine from x.shape() before fc1 layer
-#         self.apply(_weights_init)
-    def forward(self, x):      
-        x = self.resnet(x).squeeze()
-#         x = self.fc1(x)
-        # print(x.shape)
-        x = self.fc1(F.dropout(x, p=self.dropout))
-        x = torch.sigmoid(x)
-        return x
-
-
-def build_dataloader(x_train, y_train, x_val=None, y_val=None, shuffle=True):
+def build_dataloader(x_train, y_train, x_val=None, y_val=None, shuffle=True, n_channels=1):
     x_train = torch.tensor(x_train).float()
-    # x_train = x_train.repeat(1,3,1,1)  # Repeat across 3 channels to match model expectation
+    if n_channels == 3:
+        x_train = x_train.repeat(1,3,1,1)  # Repeat across 3 channels to match ResNet pre-trained model expectation
     y_train = torch.tensor(y_train).float()
     train_dataset = TensorDataset(x_train, y_train)
     train_loader = DataLoader(train_dataset, batch_size=config_pytorch.batch_size, shuffle=shuffle)
     
     if x_val is not None:
         x_val = torch.tensor(x_val).float()
-        # x_val = x_val.repeat(1,3,1,1)
-        y_val = torch.tensor(y_val).float()
-        val_dataset = TensorDataset(x_val, y_val)
-        val_loader = DataLoader(val_dataset, batch_size=config_pytorch.batch_size, shuffle=shuffle)
-
-        return train_loader, val_loader
-    return train_loader
-
-
-def build_dataloader_multiclass(x_train, y_train, x_val=None, y_val=None, shuffle=True):
-    x_train = torch.tensor(x_train).float()
-    # x_train = x_train.repeat(1,3,1,1)  # Repeat across 3 channels to match model expectation
-    y_train = torch.tensor(y_train, dtype=torch.long)
-    train_dataset = TensorDataset(x_train, y_train)
-    train_loader = DataLoader(train_dataset, batch_size=config_pytorch.batch_size, shuffle=shuffle)
-    
-    if x_val is not None:
-        x_val = torch.tensor(x_val).float()
-        # x_val = x_val.repeat(1,3,1,1)
+        if n_channels == 3:
+            x_val = x_val.repeat(1,3,1,1)
         y_val = torch.tensor(y_val).float()
         val_dataset = TensorDataset(x_val, y_val)
         val_loader = DataLoader(val_dataset, batch_size=config_pytorch.batch_size, shuffle=shuffle)
@@ -119,10 +77,10 @@ def build_dataloader_multiclass(x_train, y_train, x_val=None, y_val=None, shuffl
 
 def train_model(x_train, y_train, x_val=None, y_val=None, model = ResnetDropoutFull()):
     if x_val is not None:  # TODO: check dimensions when supplying validation data.
-        train_loader, val_loader = build_dataloader(x_train, y_train, x_val, y_val)
+        train_loader, val_loader = build_dataloader(x_train, y_train, x_val, y_val, n_channels = model.n_channels)
     
     else:
-        train_loader = build_dataloader(x_train, y_train)
+        train_loader = build_dataloader(x_train, y_train, n_channels = model.n_channels)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Training on {device}')
@@ -295,7 +253,8 @@ def evaluate_model(model, X_test, y_test, n_samples):
     print(f'Evaluating on {device}')
 
     x_test = torch.tensor(X_test).float()
-    # x_test = x_test.repeat(1,3,1,1)
+    if model.n_channels == 3:
+        x_test = x_test.repeat(1,3,1,1)
 
     y_test = torch.tensor(y_test).float()
     test_dataset = TensorDataset(x_test, y_test)
