@@ -1,9 +1,8 @@
 from torch import Tensor
 import torch.nn as nn
-import torch.nn.functional as F # For dropout
 from torch.hub import load_state_dict_from_url
 from typing import Type, Any, Callable, Union, List, Optional
-from PyTorch import config_pytorch
+
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152', 'resnext50_32x4d', 'resnext101_32x8d',
@@ -47,7 +46,6 @@ class BasicBlock(nn.Module):
         base_width: int = 64,
         dilation: int = 1,
         norm_layer: Optional[Callable[..., nn.Module]] = None,
-        dropout_p: float = config_pytorch.dropout, # Added manually to init
 
     ) -> None:
         super(BasicBlock, self).__init__()
@@ -65,15 +63,12 @@ class BasicBlock(nn.Module):
         self.bn2 = norm_layer(planes)
         self.downsample = downsample
         self.stride = stride
-        self.dropout_p = dropout_p
-        # print('Basic block super() init self, dropout: ', self.dropout_p, dropout_p)
     def forward(self, x: Tensor) -> Tensor:
         identity = x
 
         out = self.conv1(x)
         out = self.bn1(out)
         out = self.relu(out)
-        out = F.dropout(out, p=self.dropout_p) ## Added
 
         out = self.conv2(out)
         out = self.bn2(out)
@@ -83,8 +78,6 @@ class BasicBlock(nn.Module):
 
         out += identity
         out = self.relu(out)
-        out = F.dropout(out, p=self.dropout_p) ## Added
-        # print('Basic block forward self, dropout: ', self.dropout_p)
 
         return out
 
@@ -108,7 +101,7 @@ class Bottleneck(nn.Module):
         base_width: int = 64,
         dilation: int = 1,
         norm_layer: Optional[Callable[..., nn.Module]] = None,
-        dropout_p: float=config_pytorch.dropout, # Added manually to init
+
     ) -> None:
         super(Bottleneck, self).__init__()
         if norm_layer is None:
@@ -124,9 +117,7 @@ class Bottleneck(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
-        self.dropout_p = dropout_p
-        # print('BottleNeck super() value of dropout init, and self: ', dropout_p, self.dropout_p)
-        # print('BottleNeck super() value of dropout init:', dropout_p)
+
 
     def forward(self, x: Tensor) -> Tensor:
         identity = x
@@ -134,13 +125,12 @@ class Bottleneck(nn.Module):
         out = self.conv1(x)
         out = self.bn1(out)
         out = self.relu(out)
-        # print('Bottleneck forward value of dropout: ', self.dropout_p)
-        out = F.dropout(out, p=self.dropout_p) ## Added
+
 
         out = self.conv2(out)
         out = self.bn2(out)
         out = self.relu(out)
-        out = F.dropout(out, p=self.dropout_p) ## Added
+
 
         out = self.conv3(out)
         out = self.bn3(out)
@@ -150,7 +140,6 @@ class Bottleneck(nn.Module):
 
         out += identity
         out = self.relu(out)
-        out = F.dropout(out, p=self.dropout_p) ## Added
 
         return out
 
@@ -167,15 +156,14 @@ class ResNet(nn.Module):
         width_per_group: int = 64,
         replace_stride_with_dilation: Optional[List[bool]] = None,
         norm_layer: Optional[Callable[..., nn.Module]] = None,
-        dropout_p: float=config_pytorch.dropout, # Added manually to init
+
 
     ) -> None:
         super(ResNet, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
-        self.dropout_p = dropout_p
-        # print('ResNet super init self, dropout: ', self.dropout_p, dropout_p)
+
 
         self.inplanes = 64
         self.dilation = 1
@@ -193,7 +181,6 @@ class ResNet(nn.Module):
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        # dropout here (?)
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2,
                                        dilate=replace_stride_with_dilation[0])
@@ -252,7 +239,7 @@ class ResNet(nn.Module):
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
-        x = F.dropout_p(x, p=self.dropout_p) ## Added
+
 
         x = self.layer1(x)
         x = self.layer2(x)
@@ -260,8 +247,6 @@ class ResNet(nn.Module):
         x = self.layer4(x)
 
         x = self.avgpool(x)
-        x = F.dropout_p(x, p=self.dropout_p) ## Added
-        # print('forward_imp dropout', self.dropout_p)
         x = torch.flatten(x, 1)
         x = self.fc(x)
 
@@ -313,7 +298,7 @@ def resnet34(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> 
 
 
 
-def resnet50dropout(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> ResNet:
+def resnet50(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> ResNet:
     r"""ResNet-50 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
 

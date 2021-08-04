@@ -1,4 +1,5 @@
 from PyTorch.ResNetDropoutSource import resnet50dropout, resnet18
+from PyTorch.vggish.vggish import VGGish
 from torch.utils.data import TensorDataset, DataLoader
 import torch.nn.functional as F
 import torch.nn as nn
@@ -32,6 +33,31 @@ class ResnetDropoutFull(nn.Module):
         x = torch.sigmoid(x)
         return x
 
+class VGGishDropout(nn.Module):
+    def __init__(self, preprocess=False, dropout=0.2):
+        super(VGGishDropout, self).__init__()
+        self.model_urls = config_pytorch.vggish_model_urls
+        self.vggish = VGGish(self.model_urls, postprocess=False, preprocess=preprocess)
+        self.dropout = dropout
+        self.fc1 = nn.Linear(128, 1)
+    def forward(self, x):
+        n_segments = x.shape[1]
+        ##(Batch, Segments, C, H, W) -> (Batch*Segments, C, H, W)
+        x = x.view(-1, 1, 96, 64)
+        x = self.vggish.forward(x)
+        ##(Batch*Segments, Embedding) -> (Batch, Segments, Embedding)
+        # print('Shape in forward of x before mean:', np.shape(x))
+        # x = x.view(-1, n_segments, 128)
+        # print('Reshaped to -1, n_segments, 128:', np.shape(x))
+        # ##TODO: Better solution than mean (RNN?)
+        # x = torch.mean(x, axis=1)
+        # print('After taking mean, axis =1:', np.shape(x))
+        x = self.fc1(F.dropout(x, p=self.dropout))
+        x = torch.sigmoid(x)
+        return x
+
+
+
 
 
 class ResnetDropoutFullMultiClass(nn.Module):
@@ -56,14 +82,14 @@ class ResnetDropoutFullMultiClass(nn.Module):
 
 def build_dataloader(x_train, y_train, x_val=None, y_val=None, shuffle=True):
     x_train = torch.tensor(x_train).float()
-    x_train = x_train.repeat(1,3,1,1)  # Repeat across 3 channels to match model expectation
+    # x_train = x_train.repeat(1,3,1,1)  # Repeat across 3 channels to match model expectation
     y_train = torch.tensor(y_train).float()
     train_dataset = TensorDataset(x_train, y_train)
     train_loader = DataLoader(train_dataset, batch_size=config_pytorch.batch_size, shuffle=shuffle)
     
     if x_val is not None:
         x_val = torch.tensor(x_val).float()
-        x_val = x_val.repeat(1,3,1,1)
+        # x_val = x_val.repeat(1,3,1,1)
         y_val = torch.tensor(y_val).float()
         val_dataset = TensorDataset(x_val, y_val)
         val_loader = DataLoader(val_dataset, batch_size=config_pytorch.batch_size, shuffle=shuffle)
@@ -74,14 +100,14 @@ def build_dataloader(x_train, y_train, x_val=None, y_val=None, shuffle=True):
 
 def build_dataloader_multiclass(x_train, y_train, x_val=None, y_val=None, shuffle=True):
     x_train = torch.tensor(x_train).float()
-    x_train = x_train.repeat(1,3,1,1)  # Repeat across 3 channels to match model expectation
+    # x_train = x_train.repeat(1,3,1,1)  # Repeat across 3 channels to match model expectation
     y_train = torch.tensor(y_train, dtype=torch.long)
     train_dataset = TensorDataset(x_train, y_train)
     train_loader = DataLoader(train_dataset, batch_size=config_pytorch.batch_size, shuffle=shuffle)
     
     if x_val is not None:
         x_val = torch.tensor(x_val).float()
-        x_val = x_val.repeat(1,3,1,1)
+        # x_val = x_val.repeat(1,3,1,1)
         y_val = torch.tensor(y_val).float()
         val_dataset = TensorDataset(x_val, y_val)
         val_loader = DataLoader(val_dataset, batch_size=config_pytorch.batch_size, shuffle=shuffle)
@@ -269,7 +295,7 @@ def evaluate_model(model, X_test, y_test, n_samples):
     print(f'Evaluating on {device}')
 
     x_test = torch.tensor(X_test).float()
-    x_test = x_test.repeat(1,3,1,1)
+    # x_test = x_test.repeat(1,3,1,1)
 
     y_test = torch.tensor(y_test).float()
     test_dataset = TensorDataset(x_test, y_test)

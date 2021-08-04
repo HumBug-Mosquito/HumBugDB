@@ -1,4 +1,5 @@
 from PyTorch.ResNetDropoutSource import resnet50dropout, resnet18
+from PyTorch.ResNetSource import resnet50 
 from torch.utils.data import TensorDataset, DataLoader
 import torch.nn.functional as F
 import torch.nn as nn
@@ -11,14 +12,35 @@ from PyTorch import config_pytorch
 from datetime import datetime
 import os
 
+# Resnet with full dropout
 
 class ResnetDropoutFull(nn.Module):
     def __init__(self, n_classes, dropout=0.2):
-        n_output = 8
-#     def __init__(self):
         super(ResnetDropoutFull, self).__init__()
+        # self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
         self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
-        # self.resnet = resnet18(pretrained=config_pytorch.pretrained)
+        
+        self.dropout = dropout
+        # self.resnet = resnet18(pretrained=config_pytorch.pretrained, dropout_p=dropout)
+        ##Remove final linear layer
+        self.resnet = nn.Sequential(*(list(self.resnet.children())[:-1]))
+        # Figure out how to pass as parameter n_classes consistently: 1 with BCE loss, 2 with XENT loss? 8 for multiclass.
+        self.fc1 = nn.Linear(2048,n_classes)  # 512 for resnet18, resnet34, 2048 for resnet50. Determine from x.shape() before fc1 layer
+#         self.apply(_weights_init)
+    def forward(self, x):      
+        x = self.resnet(x).squeeze()
+#         x = self.fc1(x)
+        # print(x.shape)
+        x = self.fc1(F.dropout(x, p=self.dropout))
+        # x = torch.sigmoid(x)  # Warning on this: XENT loss doesn't need sigmoid whereas BCELoss does
+        return x
+
+# Resnet with dropout on last layer only
+
+class Resnet(nn.Module):
+    def __init__(self, n_classes, dropout=0.2):
+        super(Resnet, self).__init__()
+        self.resnet = resnet50(pretrained=config_pytorch.pretrained)
         self.dropout = dropout
         ##Remove final linear layer
         self.resnet = nn.Sequential(*(list(self.resnet.children())[:-1]))
@@ -30,7 +52,7 @@ class ResnetDropoutFull(nn.Module):
 #         x = self.fc1(x)
         # print(x.shape)
         x = self.fc1(F.dropout(x, p=self.dropout))
-        x = torch.sigmoid(x)
+        # x = torch.sigmoid(x)  # Warning on this: XENT loss doesn't need sigmoid whereas BCELoss does
         return x
 
 
@@ -53,7 +75,7 @@ def build_dataloader(x_train, y_train, x_val=None, y_val=None, shuffle=True):
 
 
 def train_model(x_train, y_train, class_weight=None, x_val=None, y_val=None,
-                model = ResnetDropoutFull(config_pytorch.n_classes)):
+                model = Resnet(config_pytorch.n_classes)):
     if x_val is not None:  # TODO: check dimensions when supplying validation data.
         train_loader, val_loader = build_dataloader(x_train, y_train, x_val, y_val)
     
@@ -257,12 +279,12 @@ def evaluate_model(model, X_test, y_test, n_samples):
     return y_preds_all
 
 
-def load_model(filepath):
+def load_model(filepath, model=Resnet(config_pytorch.n_classes)):
     # Instantiate model to inspect
     device = torch.device('cuda:0' if torch.cuda.is_available() else torch.device("cpu"))
     print(f'Training on {device}')
         
-    model = ResnetDropoutFull(config_pytorch.n_classes)
+    # model = ResnetDropoutFull(config_pytorch.n_classes)
     if torch.cuda.device_count() > 1:
         print("Using data parallel")
         model = nn.DataParallel(model, device_ids=list(range(torch.cuda.device_count())))
