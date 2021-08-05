@@ -29,7 +29,7 @@ def get_feat(data_df, data_dir, rate, min_duration):
             if math.isclose(length,label_duration, rel_tol=0.01):
                 signal, rate = librosa.load(filename, sr=rate)
                 sig = waveform_to_examples(signal, rate)
-                X.append(sig.unsqueeze(0))
+                X.append(sig)
                 if row['sound_type'] == 'mosquito':
                     y.append(1)
                 elif row['sound_type']:  # Condition to check we are not adding empty (or unexpected) labels as 0
@@ -42,7 +42,23 @@ def get_feat(data_df, data_dir, rate, min_duration):
             skipped_files.append([row['id'], row['name'], label_duration])
     return X, y, skipped_files, bugs
 
+def get_feat_multispecies(df_all, label_recordings_dict, data_dir, rate, n_feat=None):
+    '''Extract features for multi-class species classification.'''
+    X = []
+    y = []
 
+    for class_label in label_recordings_dict.keys(): # Loop over classes
+        print('Extracting features for class:', class_label)
+        for i in label_recordings_dict[class_label]: # Loop over recordings in class
+            df_match = df_all[df_all.name == i]
+            for idx, row in df_match.iterrows(): # Loop over clips in recording
+                _, file_format = os.path.splitext(row['name'])
+                filename = os.path.join(data_dir, str(row['id']) + file_format)
+                signal, rate = librosa.load(filename, sr=rate)
+                feat = waveform_to_examples(signal, rate)
+                X.append(feat)
+                y.append(class_label)
+    return X, y
 
 def get_signal(data_df, data_dir, rate, min_duration):
     ''' Returns raw audio with Librosa, and corresponding label longer than min_duration '''
@@ -84,12 +100,10 @@ def get_signal(data_df, data_dir, rate, min_duration):
 def reshape_feat(feats, labels):
     y_full = []
     for idx, feat in enumerate(feats):
-        y_full.append(np.repeat(labels[idx], np.shape(feat)[1]))
+        y_full.append(np.repeat(labels[idx], np.shape(feat)[0]))
     y = np.concatenate(y_full)
 
-    x = torch.cat(feats, 1)
-    x = x.squeeze(0)
-
+    x = torch.cat(feats, 0)
     y = torch.tensor(y).float() 
     return x, y
 

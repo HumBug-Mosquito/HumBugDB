@@ -2,10 +2,15 @@ dropout = 0.2
 
 # Settings for binary classification for main.ipynb
 
-lr = 0.0015
+# ResNet learning rate:
+lr = 0.0015 # Learning rate may need adjusting for multiclass VGGish.
+
+# VGGish learning rate:
+lr = 0.0003
+
 max_overrun = 30
 epochs = 50
-batch_size = 32
+batch_size = 10 # Increased batch size for VGGish (DEBUG)
 pretrained = True
 
 # VGG-ish

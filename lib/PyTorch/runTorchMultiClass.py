@@ -1,5 +1,6 @@
 from PyTorch.ResNetDropoutSource import resnet50dropout, resnet18
 from PyTorch.ResNetSource import resnet50 
+from PyTorch.vggish.vggish import VGGish
 from torch.utils.data import TensorDataset, DataLoader
 import torch.nn.functional as F
 import torch.nn as nn
@@ -21,6 +22,7 @@ class ResnetDropoutFull(nn.Module):
         self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
         
         self.dropout = dropout
+        self.n_channels = 3
         # self.resnet = resnet18(pretrained=config_pytorch.pretrained, dropout_p=dropout)
         ##Remove final linear layer
         self.resnet = nn.Sequential(*(list(self.resnet.children())[:-1]))
@@ -28,7 +30,7 @@ class ResnetDropoutFull(nn.Module):
         self.fc1 = nn.Linear(2048,n_classes)  # 512 for resnet18, resnet34, 2048 for resnet50. Determine from x.shape() before fc1 layer
 #         self.apply(_weights_init)
     def forward(self, x):      
-        x = self.resnet(x).squeeze()
+        x = self.resnet(x).squeeze() 
 #         x = self.fc1(x)
         # print(x.shape)
         x = self.fc1(F.dropout(x, p=self.dropout))
@@ -42,6 +44,7 @@ class Resnet(nn.Module):
         super(Resnet, self).__init__()
         self.resnet = resnet50(pretrained=config_pytorch.pretrained)
         self.dropout = dropout
+        self.n_channels = 3
         ##Remove final linear layer
         self.resnet = nn.Sequential(*(list(self.resnet.children())[:-1]))
         # Figure out how to pass as parameter n_classes consistently: 1 with BCE loss, 2 with XENT loss? 8 for multiclass.
@@ -56,16 +59,49 @@ class Resnet(nn.Module):
         return x
 
 
-def build_dataloader(x_train, y_train, x_val=None, y_val=None, shuffle=True):
+
+class VGGishDropout(nn.Module):
+    def __init__(self, n_classes, preprocess=False, dropout=0.2):
+        super(VGGishDropout, self).__init__()
+        self.model_urls = config_pytorch.vggish_model_urls
+        self.vggish = VGGish(self.model_urls, pretrained=config_pytorch.pretrained, postprocess=False, preprocess=preprocess)
+        self.dropout = dropout
+        self.n_channels = 1  # For building data correctly with dataloaders
+        # self.fc1 = nn.Linear(128, 100)
+        self.fc2 = nn.Linear(128, n_classes)
+        # self.relu = nn.ReLU() # For application to embeddings, see:
+        #https://github.com/tensorflow/models/blob/master/research/audioset/vggish/vggish_train_demo.py
+    def forward(self, x):
+        n_segments = x.shape[1]
+        ##(Batch, Segments, C, H, W) -> (Batch*Segments, C, H, W)
+        x = x.view(-1, 1, 96, 64)
+        x = self.vggish.forward(x) 
+        # x = self.relu(x)
+        # x = self.fc1(x)
+        x = self.fc2(x)
+        # x = torch.sigmoid(x)
+        return x
+
+
+
+
+
+
+
+
+
+def build_dataloader(x_train, y_train, x_val=None, y_val=None, shuffle=True, n_channels=1):
     x_train = torch.tensor(x_train).float()
-    x_train = x_train.repeat(1,3,1,1)  # Repeat across 3 channels to match model expectation
+    if n_channels == 3:
+        x_train = x_train.repeat(1,3,1,1)  # Repeat across 3 channels to match ResNet pre-trained model expectation
     y_train = torch.tensor(y_train, dtype=torch.long)
     train_dataset = TensorDataset(x_train, y_train)
     train_loader = DataLoader(train_dataset, batch_size=config_pytorch.batch_size, shuffle=shuffle)
     
     if x_val is not None:
         x_val = torch.tensor(x_val).float()
-        x_val = x_val.repeat(1,3,1,1)
+        if n_channels == 3:
+            x_val = x_val.repeat(1,3,1,1)
         y_val = torch.tensor(y_val,dtype=torch.long)
         val_dataset = TensorDataset(x_val, y_val)
         val_loader = DataLoader(val_dataset, batch_size=config_pytorch.batch_size, shuffle=shuffle)
@@ -77,10 +113,10 @@ def build_dataloader(x_train, y_train, x_val=None, y_val=None, shuffle=True):
 def train_model(x_train, y_train, class_weight=None, x_val=None, y_val=None,
                 model = Resnet(config_pytorch.n_classes)):
     if x_val is not None:  # TODO: check dimensions when supplying validation data.
-        train_loader, val_loader = build_dataloader(x_train, y_train, x_val, y_val)
+        train_loader, val_loader = build_dataloader(x_train, y_train, x_val, y_val, n_channels=model.n_channels)
     
     else:
-        train_loader = build_dataloader(x_train, y_train)
+        train_loader = build_dataloader(x_train, y_train, n_channels=model.n_channels)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Training on {device}')
@@ -96,7 +132,12 @@ def train_model(x_train, y_train, class_weight=None, x_val=None, y_val=None,
         print('Applying class weights:', class_weight)
         class_weight = torch.tensor([class_weight]).float().to(device)
     criterion = nn.CrossEntropyLoss(weight=class_weight) # Check if this loads correctly with weights=None
+
+    # m = nn.LogSoftmax(dim=1)
+    # criterion = nn.NLLLoss()
+
     optimiser = optim.Adam(model.parameters(), lr=config_pytorch.lr)
+    # optimiser = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
 
     all_train_loss = []
     all_train_acc = []
@@ -133,13 +174,22 @@ def train_model(x_train, y_train, class_weight=None, x_val=None, y_val=None,
             y = inputs[-1].to(device).detach().view(-1,1)
             if len(x) == 1:
                 x = x[0]
-#             print('shape x', np.shape(x))
+            # print('shape x', np.shape(x))
             optimiser.zero_grad()
             y_pred = model(x)
-#             print(np.shape(y))
-#             print(np.shape(y_pred))
-#             print('squeezed y_pred, y',np.shape(y_pred.squeeze()), np.shape(y.squeeze()))
+            # print('y_pred', y_pred)
+            # print('target', y)
+            # print(np.shape(y))
+            # print('shape y_pred', np.shape(y_pred))
+            # print('squeezed y_pred, y',np.shape(y_pred.squeeze()), np.shape(y.squeeze()))
             loss = criterion(y_pred, y.squeeze()) # will need to check for two-class also.
+            # # NLL with log-softmax for VGGish:
+            # print('y_pred', y_pred)
+            # print('m(y_pred)', m(y_pred))
+            # print('shape m(y_pred)', np.shape(m(y_pred)))
+            # print('Target', y.squeeze())
+            # print('shape Target', np.shape(y.squeeze()))
+            # loss = criterion(m(y_pred), y.squeeze())
 
             loss.backward()
             optimiser.step()
@@ -245,7 +295,8 @@ def evaluate_model(model, X_test, y_test, n_samples):
     print(f'Evaluating on {device}')
 
     x_test = torch.tensor(X_test).float()
-    x_test = x_test.repeat(1,3,1,1)
+    if model.n_channels == 3:
+        x_test = x_test.repeat(1,3,1,1)
 
     y_test = torch.tensor(y_test).float()
     test_dataset = TensorDataset(x_test, y_test)
