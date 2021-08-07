@@ -18,13 +18,13 @@ class ResnetDropoutFull(nn.Module):
     def __init__(self, dropout=0.2):
 #     def __init__(self):
         super(ResnetDropoutFull, self).__init__()
-        self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
-        # self.resnet = resnet18(pretrained=config_pytorch.pretrained)
+        # self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
+        self.resnet = resnet18(pretrained=config_pytorch.pretrained)
         self.dropout = dropout
         self.n_channels = 3  # For building data correctly with dataloaders. Check if 1 works with pretrained=False
         ##Remove final linear layer
         self.resnet = nn.Sequential(*(list(self.resnet.children())[:-1]))
-        self.fc1 = nn.Linear(2048, 1)  # 512 for resnet18, resnet34, 2048 for resnet50. Determine from x.shape() before fc1 layer
+        self.fc1 = nn.Linear(512, 1)  # 512 for resnet18, resnet34, 2048 for resnet50. Determine from x.shape() before fc1 layer
 #         self.apply(_weights_init)
     def forward(self, x):      
         x = self.resnet(x).squeeze()
@@ -258,7 +258,7 @@ def evaluate_model(model, X_test, y_test, n_samples):
 
     y_test = torch.tensor(y_test).float()
     test_dataset = TensorDataset(x_test, y_test)
-    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
     
     y_preds_all = np.zeros([n_samples, len(y_test), 2])
     model.eval() # Important to not leak info from batch norm layers and cause other issues
@@ -284,5 +284,30 @@ def evaluate_model(model, X_test, y_test, n_samples):
         y_preds_all[n,:,1] = np.array(all_y_pred)
         y_preds_all[n,:,0] = 1-np.array(all_y_pred) # Check ordering of classes (yes/no)
         test_acc = accuracy_score(all_y.numpy(), (all_y_pred.numpy() > 0.5).astype(float))
-        print(test_acc)
+        # print(test_acc)
     return y_preds_all
+
+
+def resize_window(model, X_test, y_test, n_samples):
+    ''' Generate predictions for VGGish features rescaled to time window of 1.92 second features'''
+    preds_aggregated_by_mean = []
+    y_aggregated_prediction_by_mean = []
+    y_target_aggregated = []
+    
+    for idx, recording in enumerate(X_test):
+        n_target_windows = len(recording)//2  # Calculate expected length: discard edge
+        y_target = np.repeat(y_test[idx],n_target_windows) # Create y array of correct length
+        preds = evaluate_model(model, recording, np.repeat(y_test[idx],len(recording)),n_samples) # Sample BNN
+#         preds = np.mean(preds, axis=0) # Average across BNN samples
+#         print(np.shape(preds))
+        preds = preds[:,:n_target_windows*2,:] # Discard edge case
+#         print(np.shape(preds))
+#         print('reshaping')
+        preds = np.mean(preds.reshape(len(preds),-1,2,2), axis=2) # Average every 2 elements, keep samples in first dim
+#         print(np.shape(preds))
+        preds_y = np.argmax(preds)  # Append argmax prediction (label output)
+        y_aggregated_prediction_by_mean.append(preds_y)
+        preds_aggregated_by_mean.append(preds)  # Append prob (or log-prob/other space)
+        y_target_aggregated.append(y_target)  # Append y_target
+#     return preds_aggregated_by_mean, y_aggregated_prediction_by_mean, y_target_aggregated
+    return np.hstack(preds_aggregated_by_mean), np.concatenate(y_target_aggregated)

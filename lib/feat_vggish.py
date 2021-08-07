@@ -1,4 +1,4 @@
-from PyTorch.vggish.vggish_input import waveform_to_examples
+from PyTorch.vggish.vggish_input import waveform_to_examples, wavfile_to_examples
 import torch
 import librosa
 import os
@@ -17,8 +17,9 @@ def get_feat(data_df, data_dir, rate, min_duration):
     y = []
     bugs = []
     skipped_files = []
-    for row_idx_series in data_df.iterrows():
-        row = row_idx_series[1]
+    for idx, row in data_df.iterrows():
+        if idx % 100 == 0:
+            print('Extracting entry', idx, 'of', len(data_df))
         label_duration = row['length']
         if label_duration > min_duration:
             _, file_format = os.path.splitext(row['name'])
@@ -28,7 +29,7 @@ def get_feat(data_df, data_dir, rate, min_duration):
             
             if math.isclose(length,label_duration, rel_tol=0.01):
                 signal, rate = librosa.load(filename, sr=rate)
-                sig = waveform_to_examples(signal, rate)
+                sig = waveform_to_examples(signal, rate) # Note this re-samples all data to 8k before train/test. Kept to remove confounding between data
                 X.append(sig)
                 if row['sound_type'] == 'mosquito':
                     y.append(1)
@@ -42,7 +43,8 @@ def get_feat(data_df, data_dir, rate, min_duration):
             skipped_files.append([row['id'], row['name'], label_duration])
     return X, y, skipped_files, bugs
 
-def get_feat_multispecies(df_all, label_recordings_dict, data_dir, rate, n_feat=None):
+def get_feat_multispecies(df_all, label_recordings_dict, data_dir, rate=None, n_feat=None):
+    #TODO: update interface with no required rate, or to change config withing VGGish config.
     '''Extract features for multi-class species classification.'''
     X = []
     y = []
@@ -54,8 +56,8 @@ def get_feat_multispecies(df_all, label_recordings_dict, data_dir, rate, n_feat=
             for idx, row in df_match.iterrows(): # Loop over clips in recording
                 _, file_format = os.path.splitext(row['name'])
                 filename = os.path.join(data_dir, str(row['id']) + file_format)
-                signal, rate = librosa.load(filename, sr=rate)
-                feat = waveform_to_examples(signal, rate)
+                # signal, rate = librosa.load(filename, sr=rate)
+                feat = wavfile_to_examples(filename)
                 X.append(feat)
                 y.append(class_label)
     return X, y
@@ -108,6 +110,29 @@ def reshape_feat(feats, labels):
     return x, y
 
 
+def resize_window(model, X_test, y_test, n_samples):
+    preds_aggregated_by_mean = []
+    y_aggregated_prediction_by_mean = []
+    y_target_aggregated = []
+    
+    for idx, recording in enumerate(X_test):
+        n_target_windows = len(recording)//2  # Calculate expected length: discard edge
+        y_target = np.repeat(y_test[idx],n_target_windows) # Create y array of correct length
+        preds = evaluate_model(model, recording, np.repeat(y_test[idx],len(recording)),n_samples) # Sample BNN
+#         preds = np.mean(preds, axis=0) # Average across BNN samples
+#         print(np.shape(preds))
+        preds = preds[:,:n_target_windows*2,:] # Discard edge case
+#         print(np.shape(preds))
+#         print('reshaping')
+        preds = np.mean(preds.reshape(len(preds),-1,2,2), axis=2) # Average every 2 elements, keep samples in first dim
+#         print(np.shape(preds))
+        preds_y = np.argmax(preds)  # Append argmax prediction (label output)
+        y_aggregated_prediction_by_mean.append(preds_y)
+        preds_aggregated_by_mean.append(preds)  # Append prob (or log-prob/other space)
+        y_target_aggregated.append(y_target)  # Append y_target
+#     return preds_aggregated_by_mean, y_aggregated_prediction_by_mean, y_target_aggregated
+    return np.hstack(preds_aggregated_by_mean), np.concatenate(y_target_aggregated)
+
 
 def get_train_test_from_df(df_train, df_test_A, df_test_B, debug=False):
     
@@ -119,7 +144,7 @@ def get_train_test_from_df(df_train, df_test_A, df_test_B, debug=False):
         print('Extracting training features...')
         X_train, y_train, skipped_files_train, bugs_train = get_feat(data_df=df_train, data_dir = config.data_dir,
                                                                      rate=config.rate, min_duration=config.min_duration)
-        X_train, y_train = reshape_feat(X_train, y_train)
+        # X_train, y_train = reshape_feat(X_train, y_train) # disable reshaping for pickle
 
         vggish_feat_train = {'X_train':X_train, 'y_train':y_train, 'bugs_train':bugs_train}
 
@@ -144,8 +169,8 @@ def get_train_test_from_df(df_train, df_test_A, df_test_B, debug=False):
                                                                          rate=config.rate, min_duration=config.min_duration)
         X_test_B, y_test_B, skipped_files_test_B, bugs_test_B = get_feat(data_df= df_test_B, data_dir = config.data_dir,
                                                                          rate=config.rate, min_duration=config.min_duration)
-        X_test_A, y_test_A = reshape_feat(X_test_A, y_test_A)  # Test should be strided with step = window.
-        X_test_B, y_test_B = reshape_feat(X_test_B, y_test_B)  
+        # X_test_A, y_test_A = reshape_feat(X_test_A, y_test_A)  # Test should be strided with step = window.
+        # X_test_B, y_test_B = reshape_feat(X_test_B, y_test_B)  
         
         vggish_feat_test = {'X_test_A':X_test_A, 'X_test_B':X_test_B, 'y_test_A':y_test_A, 'y_test_B':y_test_B}
 
@@ -173,9 +198,11 @@ def get_train_test_from_df(df_train, df_test_A, df_test_B, debug=False):
 
 
 
-def get_test_from_df(df_test_A, df_test_B, debug=False):
+def get_test_from_df(df_test_A, df_test_B, pickle_name=None, debug=False):
     
-
+    if pickle_name:
+        pickle_name_test = pickle_name
+    else:
     pickle_name_test = 'vggish_feat_test.pickle'
     
     
@@ -183,13 +210,11 @@ def get_test_from_df(df_test_A, df_test_B, debug=False):
         print('Extracting test features...')
 
         X_test_A, y_test_A, skipped_files_test_A, bugs_test_A = get_feat(data_df= df_test_A, data_dir = config.data_dir,
-                                                                         rate=config.rate, min_duration=config.min_duration,
-                                                                         n_feat=config.n_feat)
+                                                                         rate=config.rate, min_duration=config.min_duration)
         X_test_B, y_test_B, skipped_files_test_B, bugs_test_B = get_feat(data_df= df_test_B, data_dir = config.data_dir,
-                                                                         rate=config.rate, min_duration=config.min_duration,
-                                                                         n_feat=config.n_feat)
-        X_test_A, y_test_A = reshape_feat(X_test_A, y_test_A)  # Test should be strided with step = window.
-        X_test_B, y_test_B = reshape_feat(X_test_B, y_test_B)  
+                                                                         rate=config.rate, min_duration=config.min_duration)
+        # X_test_A, y_test_A = reshape_feat(X_test_A, y_test_A)  # Test should be strided with step = window.
+        # X_test_B, y_test_B = reshape_feat(X_test_B, y_test_B)  
         
         vggish_feat_test = {'X_test_A':X_test_A, 'X_test_B':X_test_B, 'y_test_A':y_test_A, 'y_test_B':y_test_B}
 

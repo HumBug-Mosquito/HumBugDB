@@ -19,15 +19,15 @@ class ResnetDropoutFull(nn.Module):
     def __init__(self, n_classes, dropout=0.2):
         super(ResnetDropoutFull, self).__init__()
         # self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
-        self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
+        # self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
         
         self.dropout = dropout
         self.n_channels = 3
-        # self.resnet = resnet18(pretrained=config_pytorch.pretrained, dropout_p=dropout)
+        self.resnet = resnet18(pretrained=config_pytorch.pretrained, dropout_p=dropout)
         ##Remove final linear layer
         self.resnet = nn.Sequential(*(list(self.resnet.children())[:-1]))
         # Figure out how to pass as parameter n_classes consistently: 1 with BCE loss, 2 with XENT loss? 8 for multiclass.
-        self.fc1 = nn.Linear(2048,n_classes)  # 512 for resnet18, resnet34, 2048 for resnet50. Determine from x.shape() before fc1 layer
+        self.fc1 = nn.Linear(512,n_classes)  # 512 for resnet18, resnet34, 2048 for resnet50. Determine from x.shape() before fc1 layer
 #         self.apply(_weights_init)
     def forward(self, x):      
         x = self.resnet(x).squeeze() 
@@ -78,7 +78,7 @@ class VGGishDropout(nn.Module):
         x = self.vggish.forward(x) 
         # x = self.relu(x)
         # x = self.fc1(x)
-        x = self.fc2(x)
+        x = self.fc2(F.dropout(x, p=self.dropout))
         # x = torch.sigmoid(x)
         return x
 
@@ -289,7 +289,7 @@ def test_model(model, test_loader, criterion, device=None):
 def evaluate_model(model, X_test, y_test, n_samples):
     # Determine number of classes: warning potential issue if predicted classes dont match
     # number of classes in y_test
-    n_classes = len(np.unique(y_test)) 
+    n_classes = config_pytorch.n_classes 
                     
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Evaluating on {device}')
@@ -300,7 +300,7 @@ def evaluate_model(model, X_test, y_test, n_samples):
 
     y_test = torch.tensor(y_test).float()
     test_dataset = TensorDataset(x_test, y_test)
-    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False) # Larger batch size for eval.
     
     y_preds_all = np.zeros([n_samples, len(y_test), n_classes])
     model.eval() # Important to not leak info from batch norm layers and cause other issues
@@ -326,7 +326,7 @@ def evaluate_model(model, X_test, y_test, n_samples):
         y_preds_all[n] = np.array(all_y_pred)
        
         test_acc = accuracy_score(all_y.numpy(), np.argmax(all_y_pred.numpy(), axis=1))
-        print(test_acc)
+        # print(test_acc)
     return y_preds_all
 
 
