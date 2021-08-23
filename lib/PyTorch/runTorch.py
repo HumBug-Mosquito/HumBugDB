@@ -51,7 +51,25 @@ class VGGishDropout(nn.Module):
         x = torch.sigmoid(x)
         return x
 
-
+class VGGishDropoutFeatB(nn.Module):
+    def __init__(self, preprocess=False, dropout=0.2):
+        super(VGGishDropoutFeatB, self).__init__()
+        self.model_urls = config_pytorch.vggish_model_urls
+        self.vggish = VGGish(self.model_urls, pretrained=config_pytorch.pretrained, postprocess=False, preprocess=preprocess)
+        # self.vggish = nn.Sequential(*(list(self.vggish.children())[2:])) # skip layers
+        self.vggish.embeddings = nn.Sequential(*(list(self.vggish.embeddings.children())[2:])) # skip layers
+        self.dropout = dropout
+        self.n_channels = 1  # For building data correctly with dataloaders
+        self.fc1 = nn.Linear(128, 1)  # for multiclass
+        # For application to embeddings, see:
+        #https://github.com/tensorflow/models/blob/master/research/audioset/vggish/vggish_train_demo.py
+    def forward(self, x):
+        n_segments = x.shape[1]
+        x = x.view(-1, 1, 30, 128) # Feat B
+        x = self.vggish.forward(x) 
+        x = self.fc1(F.dropout(x, p=self.dropout))
+        x = torch.sigmoid(x)
+        return x
 
 
 def build_dataloader(x_train, y_train, x_val=None, y_val=None, shuffle=True, n_channels=1):
@@ -225,12 +243,11 @@ def test_model(model, test_loader, criterion, class_threshold=0.5, device=None):
     
     return test_loss, test_acc
 
-def load_model(filepath):
+def load_model(filepath, model=ResnetDropoutFull()):
     # Instantiate model to inspect
     device = torch.device('cuda:0' if torch.cuda.is_available() else torch.device("cpu"))
     print(f'Training on {device}')
         
-    model = ResnetDropoutFull()
     if torch.cuda.device_count() > 1:
         print("Using data parallel")
         model = nn.DataParallel(model, device_ids=list(range(torch.cuda.device_count())))
@@ -288,8 +305,8 @@ def evaluate_model(model, X_test, y_test, n_samples):
     return y_preds_all
 
 
-def resize_window(model, X_test, y_test, n_samples):
-    ''' Generate predictions for VGGish features rescaled to time window of 1.92 second features'''
+def evaluate_model_aggregated(model, X_test, y_test, n_samples):
+    ''' Generate predictions for VGGish features (Feat. A) rescaled to time window of 1.92 second features (Feat. B)'''
     preds_aggregated_by_mean = []
     y_aggregated_prediction_by_mean = []
     y_target_aggregated = []

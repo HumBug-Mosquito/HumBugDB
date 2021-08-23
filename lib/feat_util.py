@@ -45,6 +45,29 @@ def get_feat(data_df, data_dir, rate, min_duration, n_feat):
 
 
 
+def get_feat_multispecies(df_all, label_recordings_dict, data_dir, rate, n_feat):
+    '''Extract features for multi-class species classification.'''
+    X = []
+    y = []
+
+    for class_label in label_recordings_dict.keys(): # Loop over classes
+        print('Extracting features for class:', class_label)
+        for i in label_recordings_dict[class_label]: # Loop over recordings in class
+            df_match = df_all[df_all.name == i]
+            for idx, row in df_match.iterrows(): # Loop over clips in recording
+                _, file_format = os.path.splitext(row['name'])
+                filename = os.path.join(data_dir, str(row['id']) + file_format)
+                signal, rate = librosa.load(filename, sr=rate)
+                feat = librosa.feature.melspectrogram(signal, sr=rate, n_mels=n_feat) 
+#                 feat = librosa.feature.mfcc(y=signal, sr=rate, n_mfcc=n_feat)
+                feat = librosa.power_to_db(feat, ref=np.max)
+                if config.norm_per_sample:
+                    feat = (feat-np.mean(feat))/np.std(feat)                
+                X.append(feat)
+                y.append(class_label)
+    return X, y
+
+
 def get_signal(data_df, data_dir, rate, min_duration):
     ''' Returns raw audio with Librosa, and corresponding label longer than min_duration '''
     X = []
@@ -169,11 +192,12 @@ def get_train_test_from_df(df_train, df_test_A, df_test_B, debug=False):
 
 
 
-def get_test_from_df(df_test_A, df_test_B, debug=False):
+def get_test_from_df(df_test_A, df_test_B, debug=False, pickle_name=None):
     
-
-    pickle_name_test = 'log_mel_feat_test_'+str(config.n_feat)+'_win_'+str(config.win_size)+'_step_'+str(config.win_size)+'_norm_'+str(config.norm_per_sample)+'.pickle'
-    
+    if not pickle_name:
+        pickle_name_test = 'log_mel_feat_test_'+str(config.n_feat)+'_win_'+str(config.win_size)+'_step_'+str(config.win_size)+'_norm_'+str(config.norm_per_sample)+'.pickle'
+    else:
+        pickle_name_test = pickle_name
     
     if not os.path.isfile(os.path.join(config.dir_out, pickle_name_test)):
         print('Extracting test features...')

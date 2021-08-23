@@ -203,7 +203,7 @@ def get_test_from_df(df_test_A, df_test_B, pickle_name=None, debug=False):
     if pickle_name:
         pickle_name_test = pickle_name
     else:
-    pickle_name_test = 'vggish_feat_test.pickle'
+        pickle_name_test = 'vggish_feat_test.pickle'
     
     
     if not os.path.isfile(os.path.join(config.dir_out, pickle_name_test)):
