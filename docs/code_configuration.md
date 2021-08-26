@@ -14,3 +14,9 @@ In `librosa`, we can calculate the value of `win_size` to achieve a user's desir
 
 `win_size` = `duration` / `frame_duration`, where `frame_duration` = `n_hop`/`rate`. Librosa uses a default `hop_length` of `NFFT/4`.
 The default values in `config.py` are optimised for `rate` = 8000 with  `win_size` = 30, `NFFT` = 2048, `n_hop` = `default`,  to achieve a label duration of 30 * 2048/4 * (1/8000) = 1.92 (s). 
+
+## Model hyperparameters
+### Keras `config_keras.py`
+`tau`,`lengthscale`, are parameters used for L2 weight regularization supplied in `runKeras.py`. `dropout` controls the dropout rate, `batch_size` controls the batch size, and `epochs`, set the number of epochs to train. 
+### PyTorch `config_pytorch.py`
+Settings to change the learning rate, `lr`, the number of maximum overrun steps for a particular training criteria `max_overrun`, the number of `epochs`, and the `batch_size`. Whether to use pre-trained weights for the models is configured by the boolean `pretrained`. `n_classes` sets the number of classes to use with the `CrossEntropyLoss()` function in PyTorch.
