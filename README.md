@@ -7,9 +7,6 @@ Acoustic mosquito detection with Bayesian Neural Networks.
 
 By Ivan Kiskin. Contact `ivankiskin1@gmail.com` for enquiries or suggestions.
 
-## `devel` branch
-This branch includes the latest updates, as logged in `changelog.txt` compared to `master`. @reviewers: if you would like to exactly match settings used for the dataset paper on submission, please checkout `master` and the `v1.0` pre-release tag, which include the exact code, plots, and model objects.
-
 ## General use instructions
 This code is complementary to the paper: *"HumBugDB: a large-scale acoustic mosquito dataset"* [currently under review](https://neurips.cc/Conferences/2021/CallForDatasetsBenchmarks#:~:text=NeurIPS%202021%20Datasets%20and%20Benchmarks,how%20to%20improve%20dataset%20development.), and the dataset on [Zenodo](https://zenodo.org/record/4904800).
 
@@ -32,6 +29,9 @@ If you wish to use the trained models, download the binaries from release `v1.0`
 
 ## `v1.0` reproducible research release
 We include the four models trained in the paper (and an additional improvement for Keras) for reproducibility in release `v1.0`. The plots of the paper are present in `outputs/plots/neurips_2021_reproducibility/` for the respective models and test sets. 
+
+## Task 1: Mosquito Event Detection (MED)
+[Documentation](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/mosquito_event_detection.md)
 
 ## Code structure
 `notebooks` contain `main.ipynb` and `supplement.ipynb` for the main code and supplementary code used to generate Figures in the Appendix.
