@@ -32,5 +32,5 @@ We include the four models trained in the paper (and an additional improvement f
 
 ## Additional documentation
 [Task 1: Mosquito Event Detection (MED)](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/mosquito_event_detection.md)
-
+[Task 2: Mosquito Species Classification (MSC)](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/mosquito_species_classification.md)
 [Code, feature, hyperparameter configuration](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/code_configuration.md)
