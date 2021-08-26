@@ -19,7 +19,7 @@ class ResnetDropoutFull(nn.Module):
     def __init__(self, n_classes, dropout=0.2):
         super(ResnetDropoutFull, self).__init__()
         # self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
-        # self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
+        self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
         
         self.dropout = dropout
         self.n_channels = 3
@@ -27,7 +27,7 @@ class ResnetDropoutFull(nn.Module):
         ##Remove final linear layer
         self.resnet = nn.Sequential(*(list(self.resnet.children())[:-1]))
         # Figure out how to pass as parameter n_classes consistently: 1 with BCE loss, 2 with XENT loss? 8 for multiclass.
-        self.fc1 = nn.Linear(512,n_classes)  # 512 for resnet18, resnet34, 2048 for resnet50. Determine from x.shape() before fc1 layer
+        self.fc1 = nn.Linear(2048,n_classes)  # 512 for resnet18, resnet34, 2048 for resnet50. Determine from x.shape() before fc1 layer
 #         self.apply(_weights_init)
     def forward(self, x):      
         x = self.resnet(x).squeeze() 
@@ -85,7 +85,7 @@ class VGGishDropout(nn.Module):
 
 class VGGishDropoutFeatB(nn.Module):
     def __init__(self, n_classes, preprocess=False, dropout=0.2):
-        super(VGGishDropoutIvanFeats, self).__init__()
+        super(VGGishDropoutFeatB, self).__init__()
         self.model_urls = config_pytorch.vggish_model_urls
         self.vggish = VGGish(self.model_urls, pretrained=config_pytorch.pretrained, postprocess=False, preprocess=preprocess)
         # self.vggish = nn.Sequential(*(list(self.vggish.children())[2:])) # skip layers
@@ -372,3 +372,24 @@ def load_model(filepath, model=Resnet(config_pytorch.n_classes)):
     checkpoint = model.load_state_dict(torch.load(filepath))
 
     return model
+
+
+def evaluate_model_aggregated(model, X_test, y_test, n_samples):
+    n_classes = 8
+    preds_aggregated_by_mean = []
+    y_aggregated_prediction_by_mean = []
+    y_target_aggregated = []
+    
+    for idx, recording in enumerate(X_test):
+        n_target_windows = len(recording)//2  # Calculate expected length: discard edge
+        y_target = np.repeat(y_test[idx],n_target_windows) # Create y array of correct length
+        preds = evaluate_model(model, recording, np.repeat(y_test[idx],len(recording)),n_samples) # Sample BNN
+        preds = np.mean(preds, axis=0) # Average across BNN samples
+        preds = preds[:n_target_windows*2,:] # Discard edge case
+        preds = np.mean(preds.reshape(-1,2,n_classes), axis=1) # Average every 2 elements, across n_classes
+        preds_y = np.argmax(preds, axis=1)  # Append argmax prediction (label output)
+        y_aggregated_prediction_by_mean.append(preds_y)
+        preds_aggregated_by_mean.append(preds)  # Append prob (or log-prob/other space)
+        y_target_aggregated.append(y_target)  # Append y_target
+    return np.concatenate(preds_aggregated_by_mean), np.concatenate(y_aggregated_prediction_by_mean), np.concatenate(y_target_aggregated)
+    

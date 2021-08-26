@@ -12,12 +12,30 @@ from PyTorch import config_pytorch
 from datetime import datetime
 import os
 
-
-
-class ResnetDropoutFull(nn.Module):
+class Resnet50DropoutFull(nn.Module):
     def __init__(self, dropout=0.2):
 #     def __init__(self):
-        super(ResnetDropoutFull, self).__init__()
+        super(Resnet50DropoutFull, self).__init__()
+        self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
+        # self.resnet = resnet18(pretrained=config_pytorch.pretrained)
+        self.dropout = dropout
+        self.n_channels = 3  # For building data correctly with dataloaders. Check if 1 works with pretrained=False
+        ##Remove final linear layer
+        self.resnet = nn.Sequential(*(list(self.resnet.children())[:-1]))
+        self.fc1 = nn.Linear(2048, 1)  # 512 for resnet18, resnet34, 2048 for resnet50. Determine from x.shape() before fc1 layer
+#         self.apply(_weights_init)
+    def forward(self, x):      
+        x = self.resnet(x).squeeze()
+#         x = self.fc1(x)
+        # print(x.shape)
+        x = self.fc1(F.dropout(x, p=self.dropout))
+        x = torch.sigmoid(x)
+        return x
+
+class Resnet18DropoutFull(nn.Module):
+    def __init__(self, dropout=0.2):
+#     def __init__(self):
+        super(Resnet18DropoutFull, self).__init__()
         # self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
         self.resnet = resnet18(pretrained=config_pytorch.pretrained)
         self.dropout = dropout
@@ -93,7 +111,7 @@ def build_dataloader(x_train, y_train, x_val=None, y_val=None, shuffle=True, n_c
 
 
 
-def train_model(x_train, y_train, x_val=None, y_val=None, model = ResnetDropoutFull()):
+def train_model(x_train, y_train, x_val=None, y_val=None, model = Resnet18DropoutFull()):
     if x_val is not None:  # TODO: check dimensions when supplying validation data.
         train_loader, val_loader = build_dataloader(x_train, y_train, x_val, y_val, n_channels = model.n_channels)
     
@@ -243,7 +261,7 @@ def test_model(model, test_loader, criterion, class_threshold=0.5, device=None):
     
     return test_loss, test_acc
 
-def load_model(filepath, model=ResnetDropoutFull()):
+def load_model(filepath, model=Resnet18DropoutFull()):
     # Instantiate model to inspect
     device = torch.device('cuda:0' if torch.cuda.is_available() else torch.device("cpu"))
     print(f'Training on {device}')

@@ -5,6 +5,7 @@ import numpy as np
 import config
 import pickle
 import math
+import collections
 # Sound type unique values: {'background', 'mosquito', 'audio'}; class labels: {1, 0, 0}
 
 # Extract features from wave files with id corresponding to dataframe data_df.
@@ -14,8 +15,12 @@ def get_feat(data_df, data_dir, rate, min_duration, n_feat):
     X = []
     y = []
     bugs = []
+    idx = 0
     skipped_files = []
     for row_idx_series in data_df.iterrows():
+        idx+=1
+        if idx % 100 == 0:
+            print('Completed', idx, 'of', len(data_df))
         row = row_idx_series[1]
         label_duration = row['length']
         if label_duration > min_duration:
@@ -45,7 +50,69 @@ def get_feat(data_df, data_dir, rate, min_duration, n_feat):
 
 
 
-def get_feat_multispecies(df_all, label_recordings_dict, data_dir, rate, n_feat):
+def get_train_test_multispecies(df_all, classes, random_seed,  train_fraction=0.75):
+    '''Extract features for multi-class species classification.'''
+    
+    
+    pickle_name_train = 'Feat_B_' + str(random_seed) + '_train.pickle'
+    pickle_name_test = 'Feat_B_' + str(random_seed) + '_test.pickle'
+    
+    if not os.path.isfile(os.path.join(config.dir_out_MSC, pickle_name_train)):
+        print('Extracting train features...')   
+        species_dict = collections.OrderedDict()
+        species_recordings = collections.OrderedDict()
+        for species in classes:
+            # Number of total audio clips per species (includes repeats from same filename)
+            species_recordings[species] = len(pd.unique(df_all[df_all.species==species].name)) # Number of unique audio recordings (and hence mosquitoes)
+            species_dict[species] = sum(df_all[df_all.species==species].length)
+
+        # Divide recordings into train and test, with recording shuffling fixed by random_state
+        train_recordings = {}
+        test_recordings = {}
+
+
+        print('Species, train unique mosquitoes, test unique mosquitoes')
+        for i in range(len(classes)):
+            n_train = int(species_recordings[classes[i]] * train_fraction)
+            n_test = species_recordings[classes[i]] - n_train
+            print(classes[i], n_train, n_test)
+            df_class = df_all[df_all.species == classes[i]]
+            train_recordings[i] =  shuffle(pd.unique(df_class.name), random_state=random_seed)[:n_train]  
+            test_recordings[i] = shuffle(pd.unique(df_class.name),random_state=random_seed)[n_train:]
+
+        X_train, y_train = get_feat_multispecies(df_all, train_recordings)
+    
+        feat_train = {"X_train":X_train, "y_train":y_train}
+   
+        with open(os.path.join(config.dir_out_MSC, pickle_name_train), 'wb') as f:
+            pickle.dump(feat_train, f, protocol=4)
+            print('Saved features to:', os.path.join(config.dir_out_MSC, pickle_name_train))
+    else:
+        with open(os.path.join(config.dir_out_MSC, pickle_name_train), 'rb') as input_file:
+            log_mel_feat = pickle.load(input_file)
+            X_train = log_mel_feat["X_train"]
+            y_train = log_mel_feat["y_train"]
+    
+    if not os.path.isfile(os.path.join(config.dir_out_MSC, pickle_name_train)):
+    
+        print('Extracting test features...')
+        X_test, y_test = get_feat_multispecies(df_all, train_recordings)
+        
+        feat_test = {"X_train":X_test, "y_train":y_test}
+        with open(os.path.join(config.dir_out_MSC, pickle_name_train), 'wb') as f:
+            pickle.dump(feat_test, f, protocol=4)
+            print('Saved features to:', os.path.join(config.dir_out_MSC, pickle_name_test))
+    else:
+        with open(os.path.join(config.dir_out_MSC, pickle_name_test), 'rb') as input_file:
+            log_mel_feat = pickle.load(input_file)
+            X_test = log_mel_feat["X_test"]
+            y_test = log_mel_feat["y_test"]           
+                               
+                
+    return X_train, y_train, X_test, y_test
+
+
+def get_feat_multispecies(df_all, label_recordings_dict):
     '''Extract features for multi-class species classification.'''
     X = []
     y = []
@@ -56,9 +123,9 @@ def get_feat_multispecies(df_all, label_recordings_dict, data_dir, rate, n_feat)
             df_match = df_all[df_all.name == i]
             for idx, row in df_match.iterrows(): # Loop over clips in recording
                 _, file_format = os.path.splitext(row['name'])
-                filename = os.path.join(data_dir, str(row['id']) + file_format)
-                signal, rate = librosa.load(filename, sr=rate)
-                feat = librosa.feature.melspectrogram(signal, sr=rate, n_mels=n_feat) 
+                filename = os.path.join(config.data_dir, str(row['id']) + file_format)
+                signal, rate = librosa.load(filename, sr=config.rate)
+                feat = librosa.feature.melspectrogram(signal, sr=rate, n_mels=config.n_feat) 
 #                 feat = librosa.feature.mfcc(y=signal, sr=rate, n_mfcc=n_feat)
                 feat = librosa.power_to_db(feat, ref=np.max)
                 if config.norm_per_sample:
@@ -131,7 +198,7 @@ def get_train_test_from_df(df_train, df_test_A, df_test_B, debug=False):
      # step = window for test (no augmentation of test):
     pickle_name_test = 'log_mel_feat_test_'+str(config.n_feat)+'_win_'+str(config.win_size)+'_step_'+str(config.win_size)+'_norm_'+str(config.norm_per_sample)+'.pickle'
     
-    if not os.path.isfile(os.path.join(config.dir_out, pickle_name_train)):
+    if not os.path.isfile(os.path.join(config.dir_out_MED, pickle_name_train)):
         print('Extracting training features...')
         X_train, y_train, skipped_files_train, bugs_train = get_feat(data_df=df_train, data_dir = config.data_dir,
                                                                      rate=config.rate, min_duration=config.min_duration,
@@ -143,18 +210,18 @@ def get_train_test_from_df(df_train, df_test_A, df_test_B, debug=False):
         if debug:
             print('Bugs train', bugs_train)
         
-        with open(os.path.join(config.dir_out, pickle_name_train), 'wb') as f:
+        with open(os.path.join(config.dir_out_MED, pickle_name_train), 'wb') as f:
             pickle.dump(log_mel_feat_train, f, protocol=4)
-            print('Saved features to:', os.path.join(config.dir_out, pickle_name_train))
+            print('Saved features to:', os.path.join(config.dir_out_MED, pickle_name_train))
 
     else:
-        print('Loading training features found at:', os.path.join(config.dir_out, pickle_name_train))
-        with open(os.path.join(config.dir_out, pickle_name_train), 'rb') as input_file:
+        print('Loading training features found at:', os.path.join(config.dir_out_MED, pickle_name_train))
+        with open(os.path.join(config.dir_out_MED, pickle_name_train), 'rb') as input_file:
             log_mel_feat = pickle.load(input_file)
             X_train = log_mel_feat['X_train']
             y_train = log_mel_feat['y_train']
 
-    if not os.path.isfile(os.path.join(config.dir_out, pickle_name_test)):
+    if not os.path.isfile(os.path.join(config.dir_out_MED, pickle_name_test)):
         print('Extracting test features...')
 
         X_test_A, y_test_A, skipped_files_test_A, bugs_test_A = get_feat(data_df= df_test_A, data_dir = config.data_dir,
@@ -173,12 +240,12 @@ def get_train_test_from_df(df_train, df_test_A, df_test_B, debug=False):
             print('Bugs test B', bugs_test_B)
 
         
-        with open(os.path.join(config.dir_out, pickle_name_test), 'wb') as f:
+        with open(os.path.join(config.dir_out_MED, pickle_name_test), 'wb') as f:
             pickle.dump(log_mel_feat_test, f, protocol=4)
-            print('Saved features to:', os.path.join(config.dir_out, pickle_name_test))
+            print('Saved features to:', os.path.join(config.dir_out_MED, pickle_name_test))
     else:
-        print('Loading test features found at:', os.path.join(config.dir_out, pickle_name_test))
-        with open(os.path.join(config.dir_out, pickle_name_test), 'rb') as input_file:
+        print('Loading test features found at:', os.path.join(config.dir_out_MED, pickle_name_test))
+        with open(os.path.join(config.dir_out_MED, pickle_name_test), 'rb') as input_file:
             log_mel_feat = pickle.load(input_file)
 
             X_test_A = log_mel_feat['X_test_A']
@@ -199,7 +266,7 @@ def get_test_from_df(df_test_A, df_test_B, debug=False, pickle_name=None):
     else:
         pickle_name_test = pickle_name
     
-    if not os.path.isfile(os.path.join(config.dir_out, pickle_name_test)):
+    if not os.path.isfile(os.path.join(config.dir_out_MED, pickle_name_test)):
         print('Extracting test features...')
 
         X_test_A, y_test_A, skipped_files_test_A, bugs_test_A = get_feat(data_df= df_test_A, data_dir = config.data_dir,
@@ -218,12 +285,12 @@ def get_test_from_df(df_test_A, df_test_B, debug=False, pickle_name=None):
             print('Bugs test B', bugs_test_B)
 
         
-        with open(os.path.join(config.dir_out, pickle_name_test), 'wb') as f:
+        with open(os.path.join(config.dir_out_MED, pickle_name_test), 'wb') as f:
             pickle.dump(log_mel_feat_test, f)
-            print('Saved features to:', os.path.join(config.dir_out, pickle_name_test))
+            print('Saved features to:', os.path.join(config.dir_out_MED, pickle_name_test))
     else:
-        print('Loading test features found at:', os.path.join(config.dir_out, pickle_name_test))
-        with open(os.path.join(config.dir_out, pickle_name_test), 'rb') as input_file:
+        print('Loading test features found at:', os.path.join(config.dir_out_MED, pickle_name_test))
+        with open(os.path.join(config.dir_out_MED, pickle_name_test), 'rb') as input_file:
             log_mel_feat = pickle.load(input_file)
 
             X_test_A = log_mel_feat['X_test_A']

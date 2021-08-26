@@ -2,9 +2,12 @@ import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
 import sklearn
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, classification_report
+import sys
 import os
 import config
+
+
 
 def get_results(y_pred_list, y_test, filename=None, show_plot_PE_MI=True, show_plot_roc=True, show_plot_cm=True):
     ''' Input: prediction list from model, y_test. y_test is a 1D Torch array (or 1D numpy for Keras).'''
@@ -36,8 +39,12 @@ def get_results(y_pred_list, y_test, filename=None, show_plot_PE_MI=True, show_p
 
 
     if show_plot_roc:
-        plot_roc("Test performance", y_test, np.mean(out, axis=0)[:,1], filename, linestyle='--')
-        print("mean ROC AUC:", sklearn.metrics.roc_auc_score(y_test, np.mean(out, axis=0)[:,1]))
+        
+
+        roc_score = sklearn.metrics.roc_auc_score(y_test, np.mean(out, axis=0)[:,1])
+        print("mean ROC AUC:", roc_score)
+
+        plot_roc("Test performance", y_test, np.mean(out, axis=0)[:,1], roc_score, filename, linestyle='--')
 
         auc_list = []
         for y in y_pred_list:
@@ -108,13 +115,14 @@ def active_BALD(out, X, n_classes):
 
 
 
-def plot_roc(name, labels, predictions, filename, **kwargs):
+def plot_roc(name, labels, predictions, roc_score, filename, **kwargs):
     fp, tp, _ = sklearn.metrics.roc_curve(labels, predictions)
 
     plt.figure(figsize=(4,4))
     plt.plot(100*fp, 100*tp, label=name, linewidth=2, **kwargs)
     plt.xlabel('False positives [%]')
     plt.ylabel('True positives [%]')
+    plt.title(str(roc_score))
 #     plt.xlim([-0.5,20])
 #     plt.ylim([80,100.5])
     plt.grid(True)
@@ -173,30 +181,39 @@ def plot_confusion_matrix(cm, classes, std, filename=None,
 
 
 
-# Define confusion matrix, should be optimised for colour scheme and visual presentation later
-def plot_confusion_matrix_multiclass(cnf_matrix_unnorm, title, classes):
-  cnf_matrix = cnf_matrix_unnorm/cnf_matrix_unnorm.sum(1)
-  fig = plt.figure(figsize=(15, 8))
-  plt.imshow(cnf_matrix, cmap=plt.cm.Blues) #plot confusion matrix grid
-  threshold = cnf_matrix.max() / 2 #threshold to define text color
-  for i in range(cnf_matrix.shape[0]): #print text in grid
-      for j in range(cnf_matrix.shape[1]): 
-          plt.text(j-0.2, i, cnf_matrix_unnorm[i,j], color="w" if cnf_matrix[i,j] > threshold else 'black')
-  tick_marks = np.arange(len(classes)) #define labeling spacing based on number of classes
-  plt.xticks(tick_marks, classes, rotation=45)
-  plt.yticks(tick_marks, classes)
-  plt.ylabel('True label')
-  plt.title(title)
-  plt.xlabel('Predicted label')
+def get_results_multiclass(y_test_CNN, y_pred_CNN, filename, classes):
+  # First plot the default confusion matrix and save to text file.
+    with open(os.path.join(config.plot_dir, filename + '_cm.txt' ), "w") as text_file:
+        print(classification_report(y_test_CNN, np.argmax(y_pred_CNN, axis=1)), file=text_file)
+    
+    # Now plot multi-class ROC:
+    compute_plot_roc_multiclass(y_test_CNN, y_pred_CNN, filename, classes, title=None)
+    
+    # Calculate confusion matrix
+    cnf_matrix_unnorm = confusion_matrix(y_test_CNN, np.argmax(y_pred_CNN, axis=1))
+
+    # Now normalise 
+    cnf_matrix = cnf_matrix_unnorm/cnf_matrix_unnorm.sum(1)
+    fig = plt.figure(figsize=(15, 8))
+    plt.imshow(cnf_matrix, cmap=plt.cm.Blues) #plot confusion matrix grid
+    threshold = cnf_matrix.max() / 2 #threshold to define text color
+    for i in range(cnf_matrix.shape[0]): #print text in grid
+        for j in range(cnf_matrix.shape[1]): 
+            plt.text(j-0.2, i, cnf_matrix_unnorm[i,j], color="w" if cnf_matrix[i,j] > threshold else 'black')
+    tick_marks = np.arange(len(classes)) #define labeling spacing based on number of classes
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+    plt.ylabel('True label')
+    # plt.title(')
+    plt.xlabel('Predicted label')
 #   plt.colorbar(label='Accuracy')
-  plt.tight_layout()
+    plt.tight_layout()
+    plt.savefig(os.path.join(config.plot_dir, filename + '_MSC_cm.pdf' ),bbox_inches='tight')
   
-  return fig
+    return fig
 
 
-from itertools import cycle
-
-def compute_plot_roc_multiclass(y_true, y_pred_prob, classes, title=None):
+def compute_plot_roc_multiclass(y_true, y_pred_prob, filename, classes, title=None):
     '''y_true: non-categorical y label. y_pred_prob: model.predict output of NN. '''
     fpr = dict()
     tpr = dict()
@@ -238,9 +255,9 @@ def compute_plot_roc_multiclass(y_true, y_pred_prob, classes, title=None):
                    ''.format(roc_auc["macro"]),
              color='navy', linestyle=':', linewidth=4)
 
-    colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
-    for i, color in zip(range(len(classes)), colors):
-        plt.plot(fpr[i], tpr[i], color=color, lw=lw,
+    # colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
+    for i in range(len(classes)):
+        plt.plot(fpr[i], tpr[i], lw=lw,
                  label='ROC curve of class {0} (area = {1:0.3f})'
                  ''.format(i, roc_auc[i]))
 
@@ -251,6 +268,7 @@ def compute_plot_roc_multiclass(y_true, y_pred_prob, classes, title=None):
     plt.ylabel('True Positive Rate')
     plt.title(title)
     plt.legend(loc="lower right")
+    plt.savefig(os.path.join(config.plot_dir, filename + '_MSC_ROC.pdf' ),bbox_inches='tight')
     plt.show()
 
 

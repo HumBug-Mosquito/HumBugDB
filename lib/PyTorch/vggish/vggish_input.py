@@ -16,7 +16,7 @@
 """Compute input examples for VGGish from audio waveform."""
 
 # Modification: Return torch tensors rather than numpy arrays
-import torch
+# import torch
 
 import numpy as np
 import resampy

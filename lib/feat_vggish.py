@@ -1,10 +1,13 @@
 from PyTorch.vggish.vggish_input import waveform_to_examples, wavfile_to_examples
-import torch
+# import torch
+import collections
 import librosa
 import os
+import pandas as pd
 import skimage.util
 import numpy as np
 import config
+from sklearn.utils import shuffle
 import pickle
 import math
 # Sound type unique values: {'background', 'mosquito', 'audio'}; class labels: {1, 0, 0}
@@ -17,9 +20,11 @@ def get_feat(data_df, data_dir, rate, min_duration):
     y = []
     bugs = []
     skipped_files = []
-    for idx, row in data_df.iterrows():
+    idx = 0
+    for _, row in data_df.iterrows():
+        idx+=1
         if idx % 100 == 0:
-            print('Extracting entry', idx, 'of', len(data_df))
+            print('Completed', idx, 'of', len(data_df))
         label_duration = row['length']
         if label_duration > min_duration:
             _, file_format = os.path.splitext(row['name'])
@@ -29,8 +34,8 @@ def get_feat(data_df, data_dir, rate, min_duration):
             
             if math.isclose(length,label_duration, rel_tol=0.01):
                 signal, rate = librosa.load(filename, sr=rate)
-                sig = waveform_to_examples(signal, rate) # Note this re-samples all data to 8k before train/test. Kept to remove confounding between data
-                X.append(sig)
+                feat = waveform_to_examples(signal, rate, return_tensor=False) # Note this re-samples all data to 8k before train/test. Kept to remove confounding between data
+                X.append(feat.reshape(-1, 1, feat.shape[-2], feat.shape[-1]))
                 if row['sound_type'] == 'mosquito':
                     y.append(1)
                 elif row['sound_type']:  # Condition to check we are not adding empty (or unexpected) labels as 0
@@ -43,7 +48,78 @@ def get_feat(data_df, data_dir, rate, min_duration):
             skipped_files.append([row['id'], row['name'], label_duration])
     return X, y, skipped_files, bugs
 
-def get_feat_multispecies(df_all, label_recordings_dict, data_dir, rate=None, n_feat=None):
+
+
+
+
+def get_train_test_multispecies(df_all, classes, random_seed,  train_fraction=0.75):
+    '''Extract features for multi-class species classification. Returns a list of features, each item in list
+    is a prediction over a full recording. Output kept as list for compatibility with predicting over full recordings
+    as well as individual windows. Output of features requires re-shaping into tensors before input to neural networks.'''
+    
+    
+    pickle_name_train = 'Feat_A_' + str(random_seed) + '_train.pickle'
+    pickle_name_test = 'Feat_A_' + str(random_seed) + '_test.pickle'
+    
+    if not os.path.isfile(os.path.join(config.dir_out_MSC, pickle_name_train)):
+        print('Extracting train features...')   
+        species_dict = collections.OrderedDict()
+        species_recordings = collections.OrderedDict()
+        for species in classes:
+            # Number of total audio clips per species (includes repeats from same filename)
+            species_recordings[species] = len(pd.unique(df_all[df_all.species==species].name)) # Number of unique audio recordings (and hence mosquitoes)
+            species_dict[species] = sum(df_all[df_all.species==species].length)
+
+        # Divide recordings into train and test, with recording shuffling fixed by random_state
+        train_recordings = {}
+        test_recordings = {}
+
+
+        print('Species, train unique mosquitoes, test unique mosquitoes')
+        for i in range(len(classes)):
+            n_train = int(species_recordings[classes[i]] * train_fraction)
+            n_test = species_recordings[classes[i]] - n_train
+            print(classes[i], n_train, n_test)
+            df_class = df_all[df_all.species == classes[i]]
+            train_recordings[i] =  shuffle(pd.unique(df_class.name), random_state=random_seed)[:n_train]  
+            test_recordings[i] = shuffle(pd.unique(df_class.name),random_state=random_seed)[n_train:]
+
+        X_train, y_train = get_feat_multispecies(df_all, train_recordings)
+    
+        feat_train = {"X_train":X_train, "y_train":y_train}
+   
+        with open(os.path.join(config.dir_out_MSC, pickle_name_train), 'wb') as f:
+            pickle.dump(feat_train, f, protocol=4)
+            print('Saved features to:', os.path.join(config.dir_out_MSC, pickle_name_train))
+    else:
+        with open(os.path.join(config.dir_out_MSC, pickle_name_train), 'rb') as input_file:
+            log_mel_feat = pickle.load(input_file)
+            X_train = log_mel_feat["X_train"]
+            y_train = log_mel_feat["y_train"]
+    
+    if not os.path.isfile(os.path.join(config.dir_out_MSC, pickle_name_test)):
+    
+        print('Extracting test features...')
+        X_test, y_test = get_feat_multispecies(df_all, test_recordings)
+        
+        feat_test = {"X_test":X_test, "y_test":y_test}
+        with open(os.path.join(config.dir_out_MSC, pickle_name_test), 'wb') as f:
+            pickle.dump(feat_test, f, protocol=4)
+            print('Saved features to:', os.path.join(config.dir_out_MSC, pickle_name_test))
+    else:
+        with open(os.path.join(config.dir_out_MSC, pickle_name_test), 'rb') as input_file:
+            log_mel_feat = pickle.load(input_file)
+            X_test = log_mel_feat["X_test"]
+            y_test = log_mel_feat["y_test"]           
+                               
+                
+    return X_train, y_train, X_test, y_test
+
+
+
+
+
+def get_feat_multispecies(df_all, label_recordings_dict, rate=None):
     #TODO: update interface with no required rate, or to change config withing VGGish config.
     '''Extract features for multi-class species classification.'''
     X = []
@@ -55,10 +131,10 @@ def get_feat_multispecies(df_all, label_recordings_dict, data_dir, rate=None, n_
             df_match = df_all[df_all.name == i]
             for idx, row in df_match.iterrows(): # Loop over clips in recording
                 _, file_format = os.path.splitext(row['name'])
-                filename = os.path.join(data_dir, str(row['id']) + file_format)
+                filename = os.path.join(config.data_dir, str(row['id']) + file_format)
                 # signal, rate = librosa.load(filename, sr=rate)
-                feat = wavfile_to_examples(filename)
-                X.append(feat)
+                feat = wavfile_to_examples(filename, return_tensor=False)
+                X.append(feat.reshape(-1, 1, feat.shape[-2], feat.shape[-1]))
                 y.append(class_label)
     return X, y
 
@@ -105,8 +181,8 @@ def reshape_feat(feats, labels):
         y_full.append(np.repeat(labels[idx], np.shape(feat)[0]))
     y = np.concatenate(y_full)
 
-    x = torch.cat(feats, 0)
-    y = torch.tensor(y).float() 
+    x = np.concatenate(feats)
+    x = x.reshape(-1, 1, x.shape[-2], x.shape[-1])
     return x, y
 
 
@@ -140,29 +216,29 @@ def get_train_test_from_df(df_train, df_test_A, df_test_B, debug=False):
      # step = window for test (no augmentation of test):
     pickle_name_test = 'vggish_feat_test.pickle'
     
-    if not os.path.isfile(os.path.join(config.dir_out, pickle_name_train)):
+    if not os.path.isfile(os.path.join(config.dir_out_MED, pickle_name_train)):
         print('Extracting training features...')
         X_train, y_train, skipped_files_train, bugs_train = get_feat(data_df=df_train, data_dir = config.data_dir,
                                                                      rate=config.rate, min_duration=config.min_duration)
-        # X_train, y_train = reshape_feat(X_train, y_train) # disable reshaping for pickle
+        X_train, y_train = reshape_feat(X_train, y_train) 
 
         vggish_feat_train = {'X_train':X_train, 'y_train':y_train, 'bugs_train':bugs_train}
 
         if debug:
             print('Bugs train', bugs_train)
         
-        with open(os.path.join(config.dir_out, pickle_name_train), 'wb') as f:
+        with open(os.path.join(config.dir_out_MED, pickle_name_train), 'wb') as f:
             pickle.dump(vggish_feat_train, f, protocol=4)
-            print('Saved features to:', os.path.join(config.dir_out, pickle_name_train))
+            print('Saved features to:', os.path.join(config.dir_out_MED, pickle_name_train))
 
     else:
-        print('Loading training features found at:', os.path.join(config.dir_out, pickle_name_train))
-        with open(os.path.join(config.dir_out, pickle_name_train), 'rb') as input_file:
+        print('Loading training features found at:', os.path.join(config.dir_out_MED, pickle_name_train))
+        with open(os.path.join(config.dir_out_MED, pickle_name_train), 'rb') as input_file:
             vggish_feat = pickle.load(input_file)
             X_train = vggish_feat['X_train']
             y_train = vggish_feat['y_train']
 
-    if not os.path.isfile(os.path.join(config.dir_out, pickle_name_test)):
+    if not os.path.isfile(os.path.join(config.dir_out_MED, pickle_name_test)):
         print('Extracting test features...')
 
         X_test_A, y_test_A, skipped_files_test_A, bugs_test_A = get_feat(data_df= df_test_A, data_dir = config.data_dir,
@@ -179,12 +255,12 @@ def get_train_test_from_df(df_train, df_test_A, df_test_B, debug=False):
             print('Bugs test B', bugs_test_B)
 
         
-        with open(os.path.join(config.dir_out, pickle_name_test), 'wb') as f:
+        with open(os.path.join(config.dir_out_MED, pickle_name_test), 'wb') as f:
             pickle.dump(vggish_feat_test, f, protocol=4)
-            print('Saved features to:', os.path.join(config.dir_out, pickle_name_test))
+            print('Saved features to:', os.path.join(config.dir_out_MED, pickle_name_test))
     else:
-        print('Loading test features found at:', os.path.join(config.dir_out, pickle_name_test))
-        with open(os.path.join(config.dir_out, pickle_name_test), 'rb') as input_file:
+        print('Loading test features found at:', os.path.join(config.dir_out_MED, pickle_name_test))
+        with open(os.path.join(config.dir_out_MED, pickle_name_test), 'rb') as input_file:
             vggish_feat = pickle.load(input_file)
 
             X_test_A = vggish_feat['X_test_A']
@@ -206,7 +282,7 @@ def get_test_from_df(df_test_A, df_test_B, pickle_name=None, debug=False):
         pickle_name_test = 'vggish_feat_test.pickle'
     
     
-    if not os.path.isfile(os.path.join(config.dir_out, pickle_name_test)):
+    if not os.path.isfile(os.path.join(config.dir_out_MED, pickle_name_test)):
         print('Extracting test features...')
 
         X_test_A, y_test_A, skipped_files_test_A, bugs_test_A = get_feat(data_df= df_test_A, data_dir = config.data_dir,
@@ -223,12 +299,12 @@ def get_test_from_df(df_test_A, df_test_B, pickle_name=None, debug=False):
             print('Bugs test B', bugs_test_B)
 
         
-        with open(os.path.join(config.dir_out, pickle_name_test), 'wb') as f:
+        with open(os.path.join(config.dir_out_MED, pickle_name_test), 'wb') as f:
             pickle.dump(vggish_feat_test, f)
-            print('Saved features to:', os.path.join(config.dir_out, pickle_name_test))
+            print('Saved features to:', os.path.join(config.dir_out_MED, pickle_name_test))
     else:
-        print('Loading test features found at:', os.path.join(config.dir_out, pickle_name_test))
-        with open(os.path.join(config.dir_out, pickle_name_test), 'rb') as input_file:
+        print('Loading test features found at:', os.path.join(config.dir_out_MED, pickle_name_test))
+        with open(os.path.join(config.dir_out_MED, pickle_name_test), 'rb') as input_file:
             vggish_feat = pickle.load(input_file)
 
             X_test_A = vggish_feat['X_test_A']

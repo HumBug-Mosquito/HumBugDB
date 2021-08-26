@@ -131,3 +131,28 @@ def evaluate_model(model, X_test, y_test, n_samples):
 def load_model(filepath):
 	model = tf.keras.models.load_model(filepath, custom_objects={"dropout": config_keras.dropout})
 	return model
+
+
+import numpy as np
+
+def evaluate_model_aggregated(model, X_test, y_test, n_samples):
+    preds_aggregated_by_mean = []
+    y_aggregated_prediction_by_mean = []
+    y_target_aggregated = []
+    
+    for idx, recording in enumerate(X_test):
+        n_target_windows = len(recording)//2  # Calculate expected length: discard edge
+        y_target = np.repeat(y_test[idx],n_target_windows) # Create y array of correct length
+        preds = evaluate_model(model, recording, np.repeat(y_test[idx],len(recording)),n_samples) # Sample BNN
+        preds = np.array(preds)
+        preds = preds[:,:n_target_windows*2,:] # Discard edge case
+#         print(np.shape(preds))
+#         print('reshaping')
+        preds = np.mean(preds.reshape(len(preds),-1,2,2), axis=2) # Average every 2 elements, keep samples in first dim
+#         print(np.shape(preds))
+        preds_y = np.argmax(preds)  # Append argmax prediction (label output)
+        y_aggregated_prediction_by_mean.append(preds_y)
+        preds_aggregated_by_mean.append(preds)  # Append prob (or log-prob/other space)
+        y_target_aggregated.append(y_target)  # Append y_target
+#     return preds_aggregated_by_mean, y_aggregated_prediction_by_mean, y_target_aggregated
+    return np.hstack(preds_aggregated_by_mean), np.concatenate(y_target_aggregated)

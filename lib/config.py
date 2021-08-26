@@ -10,7 +10,10 @@ model_dir = os.path.join(os.path.pardir, 'outputs', 'models') # Model sub-direct
 
 # Librosa settings
 # Feature output directory
-dir_out = os.path.join(os.path.pardir, 'outputs', 'features')
+# sub-directory for mosquito event_detection
+dir_out_MED = os.path.join(os.path.pardir, 'outputs', 'features', 'MED')
+# sub-directory for mosquito species classification
+dir_out_MSC = os.path.join(os.path.pardir, 'outputs', 'features', 'MSC')  
 rate = 8000
 win_size = 30
 step_size = 5
@@ -30,7 +33,7 @@ norm_per_sample = True
 min_duration = win_size * frame_duration # Change to match 1.92 (later)
 
 # Create directories if they do not exist:
-for directory in [plot_dir, dir_out, model_dir]:
+for directory in [plot_dir, dir_out_MED, dir_out_MSC, model_dir]:
 	if not os.path.isdir(directory):
 		os.mkdir(directory)
 		print('Created directory:', directory)
