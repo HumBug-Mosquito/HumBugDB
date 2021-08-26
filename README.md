@@ -2,8 +2,9 @@
 Acoustic mosquito detection with Bayesian Neural Networks.
 
 * Extract audio or features from our large-scale dataset on [Zenodo](https://zenodo.org/record/4904800).
-* Train BNNs for mosquito audio event detection
-* Evaluate BNNs and their associated uncertainty metrics
+* Jupyter notebooks to train, evaluate, and visualise BNNs and their associated uncertainty metrics for:
+  * [Task 1: Mosquito Event Detection (MED)](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/mosquito_event_detection.md)
+  * [Task 2: Mosquito Species Classification (MSC)](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/mosquito_species_classification.md)
 
 By Ivan Kiskin. Contact `ivankiskin1@gmail.com` for enquiries or suggestions.
 
@@ -15,6 +16,9 @@ See documentation in [the paper supplement](https://github.com/HumBug-Mosquito/H
 * Section B: Code use, feature and model engineering
 * Section C: Description and visualisations of metadata in `data/metadata/*.csv` 
 
+Additional documentation for:
+* [Code, feature, hyperparameter configuration](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/code_configuration.md)
+
 ## Installation instructions
 The code is written with compatibility for PyTorch and Keras (GPU), depending on the user's preference. Installation instructions for PyTorch are given in `InstallationLogPyTorch.txt` which include the requirements to run all the code. Installation in PyTorch is simpler due to fewer dependency clashes. 
 
@@ -24,11 +28,6 @@ After installation of requirements, the code can be run by cloning the repositor
 `git clone https://github.com/HumBug-Mosquito/HumBugDB.git`.
 
 Audio from the four-part-archive should be extracted from [Zenodo](https://zenodo.org/record/4904800) to `/data/audio/`.
-
-## Task documentation
-* [Task 1: Mosquito Event Detection (MED)](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/mosquito_event_detection.md)
-* [Task 2: Mosquito Species Classification (MSC)](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/mosquito_species_classification.md)
-* [Code, feature, hyperparameter configuration](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/code_configuration.md)
 
 ## `v1.0` Reproducible Research release
 If you wish to use the trained models, download the binaries from release `v1.0`, and place the models in `/outputs/models/keras/` or `/outputs/models/pytorch/` for the respective libraries. Note that for compatibility, features are required to be extracted with the default settings of the repository. We include the four models trained in the paper (and an additional improvement for Keras) for reproducibility in release `v1.0`. The plots of the paper are present in `outputs/plots/neurips_2021_reproducibility/` for the respective models and test sets. 
