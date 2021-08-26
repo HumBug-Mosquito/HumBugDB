@@ -1,6 +1,6 @@
 # Task 1: Mosquito Event Detection
 
-## Notebook: `main.ipynb()`
+## Notebook: `main.ipynb`
 
 * Select the library as `PyTorch` or `Keras` from the notebook. This will in turn import the necessary functions for use with any model.
 * Select the features to use: `FeatA` will use VGGish log-mel features, `FeatB` will use baseline 128 log-mel features as described [code_configuration.md](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/code_configuration.md)
