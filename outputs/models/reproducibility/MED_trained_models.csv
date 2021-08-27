@@ -1,9 +1,9 @@
-model,feat,model_class,,,,
-model_e10_2021_08_24_01_21_38.pth,A,vgg,,,,
-Win_30_Stride_5_2021_08_07_14_04_31-e60val_accuracy0.9652.hdf5,A,mozzbnnv2,,,,
-model_e4_2021_08_25_22_20_19.pth,A,resnet18,,,,
-model_e0_2021_08_25_09_04_10.pth,A,resnet50,,,,
-model_e8_2021_08_18_14_56_49.pth,B,vgg,tmpmodel_e8_2021_08_18_14_56_49.pth_Test_B_cm.pdf,,,BenGDrive for now
-neurips_2021_humbugdb_keras_bnn_best.hdf5,B,mozzbnnv2,,,,
-neurips_2021_humbugdb_resnet18_bnn.pth,B,resnet18,,,,
-model_e0_2021_08_25_09_04_10.pth,B,resnet50,,,,
+model,feat,model_class
+model_e10_2021_08_24_01_21_38.pth,A,vgg
+Win_30_Stride_5_2021_08_07_14_04_31-e60val_accuracy0.9652.hdf5,A,mozzbnnv2
+model_e4_2021_08_25_22_20_19.pth,A,resnet18
+model_e0_2021_08_25_09_04_10.pth,A,resnet50
+model_e8_2021_08_18_14_56_49.pth,B,vgg
+neurips_2021_humbugdb_keras_bnn_best.hdf5,B,mozzbnnv2
+neurips_2021_humbugdb_resnet18_bnn.pth,B,resnet18
+model_e0_2021_08_25_09_04_10.pth,B,resnet50
