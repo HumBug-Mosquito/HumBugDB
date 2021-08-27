@@ -1,2 +1,4 @@
-# Saved models, to be added if too large
+# Saved models, to be added if too large. Ignore all except final paper models (commented out)
 *.pth
+#!neurips_2021_humbugdb_resnet18_bnn.pth
+#!neurips_2021_humbugdb_resnet50_bnn.pth

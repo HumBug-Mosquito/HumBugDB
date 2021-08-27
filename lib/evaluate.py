@@ -2,9 +2,12 @@ import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
 import sklearn
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, classification_report
+import sys
 import os
 import config
+
+
 
 def get_results(y_pred_list, y_test, filename=None, show_plot_PE_MI=True, show_plot_roc=True, show_plot_cm=True):
     ''' Input: prediction list from model, y_test. y_test is a 1D Torch array (or 1D numpy for Keras).'''
@@ -36,8 +39,12 @@ def get_results(y_pred_list, y_test, filename=None, show_plot_PE_MI=True, show_p
 
 
     if show_plot_roc:
-        plot_roc("Test performance", y_test, np.mean(out, axis=0)[:,1], filename, linestyle='--')
-        print("mean ROC AUC:", sklearn.metrics.roc_auc_score(y_test, np.mean(out, axis=0)[:,1]))
+        
+
+        roc_score = sklearn.metrics.roc_auc_score(y_test, np.mean(out, axis=0)[:,1])
+        print("mean ROC AUC:", roc_score)
+
+        plot_roc("Test performance", y_test, np.mean(out, axis=0)[:,1], roc_score, filename, linestyle='--')
 
         auc_list = []
         for y in y_pred_list:
@@ -108,13 +115,14 @@ def active_BALD(out, X, n_classes):
 
 
 
-def plot_roc(name, labels, predictions, filename, **kwargs):
+def plot_roc(name, labels, predictions, roc_score, filename, **kwargs):
     fp, tp, _ = sklearn.metrics.roc_curve(labels, predictions)
 
     plt.figure(figsize=(4,4))
     plt.plot(100*fp, 100*tp, label=name, linewidth=2, **kwargs)
     plt.xlabel('False positives [%]')
     plt.ylabel('True positives [%]')
+    plt.title(str(roc_score))
 #     plt.xlim([-0.5,20])
 #     plt.ylim([80,100.5])
     plt.grid(True)
@@ -170,3 +178,145 @@ def plot_confusion_matrix(cm, classes, std, filename=None,
     fig.tight_layout()
     plt.savefig(os.path.join(config.plot_dir, filename + '_cm.pdf' ))
     return ax
+
+
+
+def get_results_multiclass(y_test_CNN, y_pred_CNN, filename, classes):
+  # First plot the default confusion matrix and save to text file.
+    with open(os.path.join(config.plot_dir, filename + '_cm.txt' ), "w") as text_file:
+        print(classification_report(y_test_CNN, np.argmax(y_pred_CNN, axis=1)), file=text_file)
+    
+    # Now plot multi-class ROC:
+    compute_plot_roc_multiclass(y_test_CNN, y_pred_CNN, filename, classes, title=None)
+    
+    # Calculate confusion matrix
+    cnf_matrix_unnorm = confusion_matrix(y_test_CNN, np.argmax(y_pred_CNN, axis=1))
+
+    # Now normalise 
+    cnf_matrix = cnf_matrix_unnorm/cnf_matrix_unnorm.sum(1)
+    fig = plt.figure(figsize=(15, 8))
+    plt.imshow(cnf_matrix, cmap=plt.cm.Blues) #plot confusion matrix grid
+    threshold = cnf_matrix.max() / 2 #threshold to define text color
+    for i in range(cnf_matrix.shape[0]): #print text in grid
+        for j in range(cnf_matrix.shape[1]): 
+            plt.text(j-0.2, i, cnf_matrix_unnorm[i,j], color="w" if cnf_matrix[i,j] > threshold else 'black')
+    tick_marks = np.arange(len(classes)) #define labeling spacing based on number of classes
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+    plt.ylabel('True label')
+    # plt.title(')
+    plt.xlabel('Predicted label')
+#   plt.colorbar(label='Accuracy')
+    plt.tight_layout()
+    plt.savefig(os.path.join(config.plot_dir, filename + '_MSC_cm.pdf' ),bbox_inches='tight')
+  
+    return fig
+
+
+def compute_plot_roc_multiclass(y_true, y_pred_prob, filename, classes, title=None):
+    '''y_true: non-categorical y label. y_pred_prob: model.predict output of NN. '''
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+    for i in range(len(classes)):
+        fpr[i], tpr[i], _ = sklearn.metrics.roc_curve(to_categorical(y_true)[:, i], y_pred_prob[:, i])
+        roc_auc[i] = sklearn.metrics.auc(fpr[i], tpr[i])
+
+    # Compute micro-average ROC curve and ROC area
+    fpr["micro"], tpr["micro"], _ = sklearn.metrics.roc_curve(to_categorical(y_true).ravel(), y_pred_prob.ravel())
+    roc_auc["micro"] = sklearn.metrics.auc(fpr["micro"], tpr["micro"])
+    print('BNN')
+    print(roc_auc)
+    lw=2
+    # First aggregate all false positive rates
+    all_fpr = np.unique(np.concatenate([fpr[i] for i in range(len(classes))]))
+
+    # Then interpolate all ROC curves at this points
+    mean_tpr = np.zeros_like(all_fpr)
+    for i in range(len(classes)):
+        mean_tpr += np.interp(all_fpr, fpr[i], tpr[i])
+
+    # Finally average it and compute AUC
+    mean_tpr /= len(classes)
+
+    fpr["macro"] = all_fpr
+    tpr["macro"] = mean_tpr
+    roc_auc["macro"] = sklearn.metrics.auc(fpr["macro"], tpr["macro"])
+
+    # Plot all ROC curves
+    plt.figure()
+    plt.plot(fpr["micro"], tpr["micro"],
+             label='micro-average ROC curve (area = {0:0.3f})'
+                   ''.format(roc_auc["micro"]),
+             color='deeppink', linestyle=':', linewidth=4)
+
+    plt.plot(fpr["macro"], tpr["macro"],
+             label='macro-average ROC curve (area = {0:0.3f})'
+                   ''.format(roc_auc["macro"]),
+             color='navy', linestyle=':', linewidth=4)
+
+    # colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
+    for i in range(len(classes)):
+        plt.plot(fpr[i], tpr[i], lw=lw,
+                 label='ROC curve of class {0} (area = {1:0.3f})'
+                 ''.format(i, roc_auc[i]))
+
+    plt.plot([0, 1], [0, 1], 'k--', lw=lw)
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(title)
+    plt.legend(loc="lower right")
+    plt.savefig(os.path.join(config.plot_dir, filename + '_MSC_ROC.pdf' ),bbox_inches='tight')
+    plt.show()
+
+
+    # Tools for reshaping data:
+
+def to_categorical(y, num_classes=None, dtype='float32'):
+    """Converts a class vector (integers) to binary class matrix.
+    E.g. for use with `categorical_crossentropy`.
+    Args:
+      y: Array-like with class values to be converted into a matrix
+          (integers from 0 to `num_classes - 1`).
+      num_classes: Total number of classes. If `None`, this would be inferred
+        as `max(y) + 1`.
+      dtype: The data type expected by the input. Default: `'float32'`.
+    Returns:
+      A binary matrix representation of the input. The class axis is placed
+      last.
+    Example:
+    >>> a = tf.keras.utils.to_categorical([0, 1, 2, 3], num_classes=4)
+    >>> a = tf.constant(a, shape=[4, 4])
+    >>> print(a)
+    tf.Tensor(
+    [[1. 0. 0. 0.]
+     [0. 1. 0. 0.]
+     [0. 0. 1. 0.]
+     [0. 0. 0. 1.]], shape=(4, 4), dtype=float32)
+    >>> b = tf.constant([.9, .04, .03, .03,
+    ...                  .3, .45, .15, .13,
+    ...                  .04, .01, .94, .05,
+    ...                  .12, .21, .5, .17],
+    ...                 shape=[4, 4])
+    >>> loss = tf.keras.backend.categorical_crossentropy(a, b)
+    >>> print(np.around(loss, 5))
+    [0.10536 0.82807 0.1011  1.77196]
+    >>> loss = tf.keras.backend.categorical_crossentropy(a, a)
+    >>> print(np.around(loss, 5))
+    [0. 0. 0. 0.]
+    """
+    y = np.array(y, dtype='int')
+    input_shape = y.shape
+    if input_shape and input_shape[-1] == 1 and len(input_shape) > 1:
+        input_shape = tuple(input_shape[:-1])
+    y = y.ravel()
+    if not num_classes:
+        num_classes = np.max(y) + 1
+    n = y.shape[0]
+    categorical = np.zeros((n, num_classes), dtype=dtype)
+    categorical[np.arange(n), y] = 1
+    output_shape = input_shape + (num_classes,)
+    categorical = np.reshape(categorical, output_shape)
+    return categorical

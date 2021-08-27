@@ -1,0 +1,4 @@
+keras-base=2.3.1=py37_0
+keras-gpu=2.3.1=0
+tensorflow-base=1.14.0=gpu_py37h55fc52a_0
+tensorflow-gpu=1.14.0=h0d30ee6_0
