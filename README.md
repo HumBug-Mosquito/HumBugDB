@@ -9,7 +9,7 @@ Acoustic mosquito detection with Bayesian Neural Networks.
 By Ivan Kiskin. Contact `ivankiskin1@gmail.com` for enquiries or suggestions.
 
 ## General use instructions
-This code is complementary to the paper: *"HumBugDB: a large-scale acoustic mosquito dataset"* [currently under review](https://neurips.cc/Conferences/2021/CallForDatasetsBenchmarks#:~:text=NeurIPS%202021%20Datasets%20and%20Benchmarks,how%20to%20improve%20dataset%20development.), and the dataset on [Zenodo](https://zenodo.org/record/4904800).
+This code is complementary to the paper: [*"HumBugDB: a large-scale acoustic mosquito dataset"*](https://openreview.net/forum?id=vhjsBtq9OxO) and the dataset on [Zenodo](https://zenodo.org/record/4904800).
 
 See documentation in [the paper supplement](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/NeurIPS_2021_HumBugDB_Supplement.pdf) for:
 * Section A: Licensing
@@ -20,7 +20,7 @@ Additional documentation for:
 * [Code, feature, hyperparameter configuration](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/code_configuration.md)
 
 ## Installation instructions
-The code is written with compatibility for PyTorch and Keras (GPU), depending on the user's preference. Installation instructions for PyTorch are given in `InstallationLogPyTorch.txt` which include the requirements to run all the code. Installation in PyTorch is simpler due to fewer dependency clashes. 
+Code compatible with both PyTorch and Keras (GPU). Installation instructions for PyTorch are given in `InstallationLogPyTorch.txt` which include the requirements to run all the code. Installation in PyTorch is simpler due to fewer dependency clashes. 
 
 Keras requirements are given in `condarequirementsKeras.txt` and `piprequirementsKeras.txt`. 
 
