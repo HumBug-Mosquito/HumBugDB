@@ -24,7 +24,7 @@ The hyperparameter settings used for MED are:
 ## Trained models
 The results of the model training are included in this repository for the purpose of reproducibility, or if you would like to use standalone models for your own applications. Consider that the input pipeline of audio and feature processing has to be matched identically for correct function. 
 * If you wish to use a trained model in a detection pipeline which is streamlined for *deployment*, please visit our other repo [MozzBNN](https://github.com/HumBug-Mosquito/MozzBNN). 
-* If you wish to use any of the trained models from the experiments reported in Section 5.1 of the paper, you may download any of the following models which are linked to GitHub release v [X TBA].
+* If you wish to use any of the trained models from the experiments reported in Section 5.1 of the paper, you may download any of the following models which are linked to [GitHub release v2.0](https://github.com/HumBug-Mosquito/HumBugDB/releases/tag/2.0).
 
 | model                                                          | feat | model_class |
 |----------------------------------------------------------------|------|-------------|
