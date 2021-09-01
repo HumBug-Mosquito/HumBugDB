@@ -1,5 +1,9 @@
 # Task 2: Mosquito Species Classification
 
+This task showcases an example use of the code for classification of mosquito species. Over 1,000 individually captured wild mosquitoes of 8 species are included in the dataset for this task. The data collection, splitting, model training and evaluation is given in  [*HumBugDB: A Large-scale Acoustic Mosquito
+Dataset*
+](https://openreview.net/pdf?id=vhjsBtq9OxO).
+
 ## Notebook: `species_classification.ipynb`
 
 * Select the library as `PyTorch` or `Keras` from the notebook. This will in turn import the necessary functions for use with any model.
@@ -17,3 +21,8 @@
 The hyperparameter settings used for MSC are:
 * `config_keras`: `epochs=80`, `batch_size=128`, `lengthscale=0.01`, `dropout=0.2`
 * `config_pytorch`: `epochs=120`, `batch_size=32` or `batch_size=128` if the learning process is too slow, `lr=0.0003`, `dropout=0.05`, `pretrained=True`
+
+## Trained models
+The results of the model training are included in this repository for the purpose of reproducibility, or if you would like to use standalone models for your own applications. Note also, that data was split into 75% training and 25% testing for the purpose of validation with 5 distinct random seeds. If you wish to use the model as a standalone classifier, or have your own test set for evaluation, it is worth re-training any model of your choice on the full dataset. Consider also that the input pipeline of audio and feature processing has to be matched identically for correct function. If you wish to use any of the trained models from the experiments reported in Section 5.2 of the paper, you may download any of the following models which are linked to GitHub release v [X TBA]:
+
+
