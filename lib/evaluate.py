@@ -320,3 +320,24 @@ def to_categorical(y, num_classes=None, dtype='float32'):
     output_shape = input_shape + (num_classes,)
     categorical = np.reshape(categorical, output_shape)
     return categorical
+
+
+# For multi-class evaluation for both PyTorch and Keras:
+def evaluate_model_aggregated(model, X_test, y_test, n_samples):
+    n_classes = 8
+    preds_aggregated_by_mean = []
+    y_aggregated_prediction_by_mean = []
+    y_target_aggregated = []
+    
+    for idx, recording in enumerate(X_test):
+        n_target_windows = len(recording)//2  # Calculate expected length: discard edge
+        y_target = np.repeat(y_test[idx],n_target_windows) # Create y array of correct length
+        preds = evaluate_model(model, recording, np.repeat(y_test[idx],len(recording)),n_samples) # Sample BNN
+        preds = np.mean(preds, axis=0) # Average across BNN samples
+        preds = preds[:n_target_windows*2,:] # Discard edge case
+        preds = np.mean(preds.reshape(-1,2,n_classes), axis=1) # Average every 2 elements, across n_classes
+        preds_y = np.argmax(preds, axis=1)  # Append argmax prediction (label output)
+        y_aggregated_prediction_by_mean.append(preds_y)
+        preds_aggregated_by_mean.append(preds)  # Append prob (or log-prob/other space)
+        y_target_aggregated.append(y_target)  # Append y_target
+    return np.concatenate(preds_aggregated_by_mean), np.concatenate(y_aggregated_prediction_by_mean), np.concatenate(y_target_aggregated)

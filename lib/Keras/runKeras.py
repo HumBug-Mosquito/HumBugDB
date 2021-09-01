@@ -155,4 +155,4 @@ def evaluate_model_aggregated(model, X_test, y_test, n_samples):
         preds_aggregated_by_mean.append(preds)  # Append prob (or log-prob/other space)
         y_target_aggregated.append(y_target)  # Append y_target
 #     return preds_aggregated_by_mean, y_aggregated_prediction_by_mean, y_target_aggregated
-    return np.hstack(preds_aggregated_by_mean), np.concatenate(y_target_aggregated)
+    return np.hstack(preds_aggregated_by_mean), np.concatenate(y_aggregated_prediction_by_mean), np.concatenate(y_target_aggregated)

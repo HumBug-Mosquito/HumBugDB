@@ -23,7 +23,7 @@ class ResnetDropoutFull(nn.Module):
         
         self.dropout = dropout
         self.n_channels = 3
-        self.resnet = resnet18(pretrained=config_pytorch.pretrained, dropout_p=dropout)
+        # self.resnet = resnet18(pretrained=config_pytorch.pretrained, dropout_p=dropout)
         ##Remove final linear layer
         self.resnet = nn.Sequential(*(list(self.resnet.children())[:-1]))
         # Figure out how to pass as parameter n_classes consistently: 1 with BCE loss, 2 with XENT loss? 8 for multiclass.

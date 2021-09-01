@@ -3,10 +3,10 @@ dropout = 0.2
 # Settings for binary classification for main.ipynb
 
 # ResNet learning rate:
-lr = 0.0015 # Learning rate may need adjusting for multiclass VGGish.
+# lr = 0.0015 # Learning rate may need adjusting for multiclass VGGish.
 
 # VGGish learning rate:
-# lr = 0.0003
+lr = 0.0003
 
 max_overrun = 10
 epochs = 50
@@ -19,5 +19,5 @@ vggish_model_urls = {'vggish': 'https://github.com/harritaylor/torchvggish/relea
 
 # Settings for multi-class classification with 8 species for species_classification.ipynb
 n_classes = 8
-# epochs = 100
+epochs = 100
 

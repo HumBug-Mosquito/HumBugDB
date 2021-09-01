@@ -22,11 +22,6 @@ epochs = 80
 
 
 
-
-batch_size = 128
-epochs = 80
-
-
 # Make output sub-directory for saving model
 directory = os.path.join(config.model_dir, 'keras')
 if not os.path.isdir(directory):
