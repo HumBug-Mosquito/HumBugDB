@@ -3,8 +3,8 @@ Acoustic mosquito detection with Bayesian Neural Networks.
 
 * Extract audio or features from our large-scale dataset on [Zenodo](https://zenodo.org/record/4904800).
 * This repository outlines two key example use cases for the data:
-  * [Task 1: Mosquito Event Detection (MED)](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/mosquito_event_detection.md)
-  * [Task 2: Mosquito Species Classification (MSC)](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/mosquito_species_classification.md)
+  * [Task 1: Mosquito Event Detection (MED)](https://github.com/HumBug-Mosquito/HumBugDB/blob/master/docs/mosquito_event_detection.md)
+  * [Task 2: Mosquito Species Classification (MSC)](https://github.com/HumBug-Mosquito/HumBugDB/blob/master/docs/mosquito_species_classification.md)
 
 ## General use instructions
 This code is complementary to the paper: [*"HumBugDB: a large-scale acoustic mosquito dataset"*](https://openreview.net/forum?id=vhjsBtq9OxO) and the dataset on [Zenodo](https://zenodo.org/record/4904800).
