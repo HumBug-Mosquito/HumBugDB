@@ -23,8 +23,8 @@ You may choose to use the Colab environment which is natively compatible with al
 * Installation and use with Google Colab [here](https://colab.research.google.com/drive/1MYsFiXYwuStrNyqg6lxqKD4DxQRKTqMU?usp=sharing).
 
 ### Jupyter notebook
-* Installation instructions for PyTorch: `InstallationLogPyTorch.txt` which include the requirements to run all the code. 
-* Keras requirements are given in `condarequirementsKeras.txt` and `piprequirementsKeras.txt`. 
+* Installation instructions and requirements for PyTorch: `InstallationLogPyTorch.txt`.
+* Keras min. requirements: `condarequirementsKeras.txt` and `piprequirementsKeras.txt`. Compatible with Tensorflow 1.X and 2.X.
 
 After installation of requirements:
 * ```     
