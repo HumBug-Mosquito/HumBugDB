@@ -18,7 +18,11 @@ Additional documentation for:
 * [Code, feature, hyperparameter configuration](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/code_configuration.md)
 
 ## Installation instructions
-Code compatible with both PyTorch and Keras (GPU).
+You may choose to use the Colab environment which is natively compatible with all of our code. Alternatively, see the instructions for manually configuring an environment to run the Jupyter notebooks.
+### Google Colab
+* Installation and use with Google Colab [here](https://colab.research.google.com/drive/1MYsFiXYwuStrNyqg6lxqKD4DxQRKTqMU?usp=sharing).
+
+### Jupyter notebook
 * Installation instructions for PyTorch: `InstallationLogPyTorch.txt` which include the requirements to run all the code. 
 * Keras requirements are given in `condarequirementsKeras.txt` and `piprequirementsKeras.txt`. 
 
