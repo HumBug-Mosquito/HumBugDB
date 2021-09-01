@@ -2,11 +2,9 @@
 Acoustic mosquito detection with Bayesian Neural Networks.
 
 * Extract audio or features from our large-scale dataset on [Zenodo](https://zenodo.org/record/4904800).
-* Jupyter notebooks to train, evaluate, and visualise BNNs and their associated uncertainty metrics for:
+* This repository outlines two key example use cases for the data:
   * [Task 1: Mosquito Event Detection (MED)](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/mosquito_event_detection.md)
   * [Task 2: Mosquito Species Classification (MSC)](https://github.com/HumBug-Mosquito/HumBugDB/blob/devel/docs/mosquito_species_classification.md)
-
-By Ivan Kiskin. Contact `ivankiskin1@gmail.com` for enquiries or suggestions.
 
 ## General use instructions
 This code is complementary to the paper: [*"HumBugDB: a large-scale acoustic mosquito dataset"*](https://openreview.net/forum?id=vhjsBtq9OxO) and the dataset on [Zenodo](https://zenodo.org/record/4904800).
@@ -29,5 +27,7 @@ After installation of requirements:
   git clone https://github.com/HumBug-Mosquito/HumBugDB.git
 * Extract audio from four-part-archive to [Zenodo](https://zenodo.org/record/4904800) to `/data/audio/`.
 
-## `v1.0` Reproducible Research release
-If you wish to use the trained models, download the binaries from release `v1.0`, and place the models in `/outputs/models/keras/` or `/outputs/models/pytorch/` for the respective libraries. Note that for compatibility, features are required to be extracted with the default settings of the repository. We include the four models trained in the paper (and an additional improvement for Keras) for reproducibility in release `v1.0`. The plots of the paper are present in `outputs/plots/neurips_2021_reproducibility/` for the respective models and test sets. 
+## Contact
+Developed by Ivan Kiskin of [MLRG](https://www.robots.ox.ac.uk/~parg/) University of Oxford. Contact `ivankiskin1@gmail.com` for enquiries or suggestions.
+Follow our Twitter on [@OxHumBug](https://twitter.com/oxhumbug) and visit our [HumBug website](https://humbug.ox.ac.uk/) for updates on the overall HumBug project.
+
