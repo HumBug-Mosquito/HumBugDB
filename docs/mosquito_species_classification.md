@@ -23,7 +23,7 @@ The hyperparameter settings used for MSC are:
 * `config_pytorch`: `epochs=120`, `batch_size=32` or `batch_size=128` if the learning process is too slow, `lr=0.0003`, `dropout=0.05`, `pretrained=True`
 
 ## Trained models
-The results of the model training are included in this repository for the purpose of reproducibility, or if you would like to use standalone models for your own applications. Note also, that data was split into 75% training and 25% testing for the purpose of validation with 5 distinct random seeds. If you wish to use the model as a standalone classifier, or have your own test set for evaluation, it is worth re-training any model of your choice on the full dataset. Consider also that the input pipeline of audio and feature processing has to be matched identically for correct function. If you wish to use any of the trained models from the experiments reported in Section 5.2 of the paper, you may download any of the following models which are linked to GitHub release v [X TBA]:
+The results of the model training are included in this repository for the purpose of reproducibility, or if you would like to use standalone models for your own applications. Note also, that data was split into 75% training and 25% testing for the purpose of validation with 5 distinct random seeds. If you wish to use the model as a standalone classifier, or have your own test set for evaluation, it is worth re-training any model of your choice on the full dataset. Consider also that the input pipeline of audio and feature processing has to be matched identically for correct function. If you wish to use any of the trained models from the experiments reported in Section 5.2 of the paper, you may download any of the following models which are linked to [GitHub release v2.0](https://github.com/HumBug-Mosquito/HumBugDB/releases/tag/2.0):
 
 
 | model | feat | model_class | random_seed | roc auc micro average | roc class 0 | roc class 1 | roc class 2 | roc class 3 | roc class 4 | roc class 5 | roc class 6 | roc class 7 |
@@ -36,16 +36,16 @@ The results of the model training are included in this repository for the purpos
 | Win_30_Stride_5_2021_07_31_03_25_35-e69accuracy0.9608.hdf5 | B | mozzbnnv2 | 5 | 0.929262474 | 0.865100434 | 0.881182953 | 0.977386229 | 0.903403219 | 0.83672269 | 0.909909302 | 0.85067915 | 0.915429688 |
 | model_e77_2021_07_31_20_01_44.pth | B | resnet18 | 5 | 0.963325937 | 0.922952627 | 0.93688166 | 0.963522226 | 0.948526439 | 0.96839646 | 0.957300362 | 0.942416461 | 0.959894954 |
 | model_e73_2021_08_01_18_19_10.pth | B | resnet50 | 5 | 0.905654818 | 0.845785976 | 0.84078992 | 0.928063949 | 0.869965807 | 0.838256959 | 0.856039843 | 0.800616813 | 0.75460568 |
-|  | A | vgg | 10 | 0.943 | 0.89 | 0.871 | 0.974 | 0.95 | 0.883 | 0.952 | 0.919 | 0.928 |
+| model_e31_2021_09_01_16_48_49.pth | A | vgg | 10 | 0.922214528 | 0.867614042 | 0.833689278 | 0.958738376 | 0.922244059 | 0.872235559 | 0.911611652 | 0.856992811 | 0.908273377 |
 | Win_30_Stride_5_2021_08_18_15_04_54-e72accuracy0.9536.hdf5 | A | mozzbnnv2 | 10 | 0.915984533 | 0.847369672 | 0.803561727 | 0.93257473 | 0.915201796 | 0.771004405 | 0.923909622 | 0.875191371 | 0.903098825 |
 | model_e97_2021_08_16_23_26_37.pth | A | resnet18 | 10 | 0.893936217 | 0.745813935 | 0.852874495 | 0.980367672 | 0.766323681 | 0.864905183 | 0.951193018 | 0.88917851 | 0.872056235 |
 | model_e99_2021_08_16_21_43_19.pth | A | resnet50 | 10 | 0.866380037 | 0.664699416 | 0.856244822 | 0.99003914 | 0.926834309 | 0.921594794 | 0.932827319 | 0.915427542 | 0.935155059 |
 | 2021_08_17_15_56_18_model_e015.pth | B | vgg | 10 | 0.921 | 0.862 | 0.835 | 0.969 | 0.922 | 0.869 | 0.86 | 0.805 | 0.897 |
 | Win_30_Stride_5_2021_08_03_09_42_31-e60accuracy0.9614.hdf5 | B | mozzbnnv2 | 10 | 0.931859358 | 0.86845592 | 0.861570264 | 0.973078571 | 0.930856298 | 0.851296769 | 0.910464906 | 0.883630316 | 0.900182657 |
 | model_e28_2021_08_02_20_16_25.pth | B | resnet18 | 10 | 0.895728599 | 0.78407814 | 0.842139939 | 0.956942965 | 0.879772135 | 0.853519557 | 0.901586647 | 0.854797686 | 0.909581471 |
-| model_e35_2021_08_16_15_48_41.pth | B | resnet50 | 10 | 0.862197517 | 0.652542933 | 0.843258343 | 0.985058688 | 0.932616457 | 0.891403607 | 0.899436182 | 0.87827761 | 0.864383197 |
-| model_e033_2021_08_17_11_40_29.pth | A | vgg | 21 | 0.902 | 0.818 | 0.795 | 0.957 | 0.924 | 0.794 | 0.822 | 0.825 | 0.932 |
-|  | A | mozzbnnv2 | 21 | 0.899647172 | 0.817019655 | 0.811112742 | 0.947866753 | 0.913630081 | 0.780481435 | 0.866334947 | 0.734788778 | 0.887292769 |
+| model_e17_2021_09_01_21_45_45.pth | B | resnet50 | 10 | 0.902792519 | 0.871300068 | 0.851406672 | 0.982231351 | 0.748782051 | 0.899344438 | 0.912752772 | 0.885534219 | 0.893951217 |
+| 2021_08_17_11_40_29_model_e033.pth | A | vgg | 21 | 0.902 | 0.818 | 0.795 | 0.957 | 0.924 | 0.794 | 0.822 | 0.825 | 0.932 |
+| Win_30_Stride_5_2021_09_01_20_12_59-e80accuracy0.9509.hdf5 | A | mozzbnnv2 | 21 | 0.899647172 | 0.817019655 | 0.811112742 | 0.947866753 | 0.913630081 | 0.780481435 | 0.866334947 | 0.734788778 | 0.887292769 |
 | model_e97_2021_08_17_15_08_51.pth | A | resnet18 | 21 | 0.895742079 | 0.716786226 | 0.851926956 | 0.984885935 | 0.936569178 | 0.839070979 | 0.891654499 | 0.815610957 | 0.910371174 |
 | model_e95_2021_08_17_17_46_53.pth | A | resnet50 | 21 | 0.897739842 | 0.756215318 | 0.866158382 | 0.991774875 | 0.962410988 | 0.828453424 | 0.918563488 | 0.761780577 | 0.932719666 |
 | 2021_08_17_13_28_25_model_e009.pth | B | vgg | 21 | 0.901 | 0.84 | 0.792 | 0.972 | 0.919 | 0.83 | 0.825 | 0.634 | 0.8998 |
