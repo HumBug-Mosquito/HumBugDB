@@ -15,9 +15,9 @@ import os
 
 # Resnet with full dropout
 
-class ResnetDropoutFull(nn.Module):
+class Resnet50DropoutFull(nn.Module):
     def __init__(self, n_classes, dropout=0.2):
-        super(ResnetDropoutFull, self).__init__()
+        super(Resnet50DropoutFull, self).__init__()
         # self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
         self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
         
@@ -28,6 +28,29 @@ class ResnetDropoutFull(nn.Module):
         self.resnet = nn.Sequential(*(list(self.resnet.children())[:-1]))
         # Figure out how to pass as parameter n_classes consistently: 1 with BCE loss, 2 with XENT loss? 8 for multiclass.
         self.fc1 = nn.Linear(2048,n_classes)  # 512 for resnet18, resnet34, 2048 for resnet50. Determine from x.shape() before fc1 layer
+#         self.apply(_weights_init)
+    def forward(self, x):      
+        x = self.resnet(x).squeeze() 
+#         x = self.fc1(x)
+        # print(x.shape)
+        x = self.fc1(F.dropout(x, p=self.dropout))
+        # x = torch.sigmoid(x)  # Warning on this: XENT loss doesn't need sigmoid whereas BCELoss does
+        return x
+
+
+class Resnet18DropoutFull(nn.Module):
+    def __init__(self, n_classes, dropout=0.2):
+        super(Resnet18DropoutFull, self).__init__()
+        # self.resnet = resnet50dropout(pretrained=config_pytorch.pretrained, dropout_p=0.2)
+        self.resnet = resnet18(pretrained=config_pytorch.pretrained, dropout_p=0.2)
+        
+        self.dropout = dropout
+        self.n_channels = 3
+        # self.resnet = resnet18(pretrained=config_pytorch.pretrained, dropout_p=dropout)
+        ##Remove final linear layer
+        self.resnet = nn.Sequential(*(list(self.resnet.children())[:-1]))
+        # Figure out how to pass as parameter n_classes consistently: 1 with BCE loss, 2 with XENT loss? 8 for multiclass.
+        self.fc1 = nn.Linear(512,n_classes)  # 512 for resnet18, resnet34, 2048 for resnet50. Determine from x.shape() before fc1 layer
 #         self.apply(_weights_init)
     def forward(self, x):      
         x = self.resnet(x).squeeze() 
@@ -92,7 +115,7 @@ class VGGishDropoutFeatB(nn.Module):
         self.vggish.embeddings = nn.Sequential(*(list(self.vggish.embeddings.children())[2:])) # skip layers
         self.dropout = dropout
         self.n_channels = 1  # For building data correctly with dataloaders
-        self.fc1 = nn.Linear(128, n_classes)  # for multiclass
+        self.fc2 = nn.Linear(128, n_classes)  # for multiclass
         # For application to embeddings, see:
         #https://github.com/tensorflow/models/blob/master/research/audioset/vggish/vggish_train_demo.py
     def forward(self, x):
@@ -102,7 +125,7 @@ class VGGishDropoutFeatB(nn.Module):
 
         x = x.view(-1, 1, 30, 128) # Feat B
         x = self.vggish.forward(x) 
-        x = self.fc1(F.dropout(x, p=self.dropout))
+        x = self.fc2(F.dropout(x, p=self.dropout))
         x = torch.sigmoid(x)
         return x
 

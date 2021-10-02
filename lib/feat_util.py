@@ -6,6 +6,8 @@ import config
 import pickle
 import math
 import collections
+import pandas as pd
+from sklearn.utils import shuffle
 # Sound type unique values: {'background', 'mosquito', 'audio'}; class labels: {1, 0, 0}
 
 # Extract features from wave files with id corresponding to dataframe data_df.
@@ -93,13 +95,13 @@ def get_train_test_multispecies(df_all, classes, random_seed,  train_fraction=0.
             X_train = log_mel_feat["X_train"]
             y_train = log_mel_feat["y_train"]
     
-    if not os.path.isfile(os.path.join(config.dir_out_MSC, pickle_name_train)):
+    if not os.path.isfile(os.path.join(config.dir_out_MSC, pickle_name_test)):
     
         print('Extracting test features...')
-        X_test, y_test = get_feat_multispecies(df_all, train_recordings)
+        X_test, y_test = get_feat_multispecies(df_all, test_recordings)
         
-        feat_test = {"X_train":X_test, "y_train":y_test}
-        with open(os.path.join(config.dir_out_MSC, pickle_name_train), 'wb') as f:
+        feat_test = {"X_test":X_test, "y_test":y_test}
+        with open(os.path.join(config.dir_out_MSC, pickle_name_test), 'wb') as f:
             pickle.dump(feat_test, f, protocol=4)
             print('Saved features to:', os.path.join(config.dir_out_MSC, pickle_name_test))
     else:

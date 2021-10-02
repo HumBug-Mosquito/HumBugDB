@@ -230,8 +230,8 @@ def compute_plot_roc_multiclass(y_true, y_pred_prob, filename, classes, title=No
     # Compute micro-average ROC curve and ROC area
     fpr["micro"], tpr["micro"], _ = sklearn.metrics.roc_curve(to_categorical(y_true).ravel(), y_pred_prob.ravel())
     roc_auc["micro"] = sklearn.metrics.auc(fpr["micro"], tpr["micro"])
-    print('BNN')
-    print(roc_auc)
+    with open(os.path.join(config.plot_dir, filename + '_roc.txt' ), "w") as text_file:
+        print(roc_auc, file=text_file)
     lw=2
     # First aggregate all false positive rates
     all_fpr = np.unique(np.concatenate([fpr[i] for i in range(len(classes))]))
@@ -263,8 +263,8 @@ def compute_plot_roc_multiclass(y_true, y_pred_prob, filename, classes, title=No
     # colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
     for i in range(len(classes)):
         plt.plot(fpr[i], tpr[i], lw=lw,
-                 label='ROC curve of class {0} (area = {1:0.3f})'
-                 ''.format(i, roc_auc[i]))
+                 label='{0} (area = {1:0.3f})'
+                 ''.format(classes[i], roc_auc[i]))
 
     plt.plot([0, 1], [0, 1], 'k--', lw=lw)
     plt.xlim([0.0, 1.0])
