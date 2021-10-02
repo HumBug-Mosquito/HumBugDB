@@ -391,7 +391,7 @@ def to_categorical(y, num_classes=None, dtype='float32'):
     return categorical
 
 
-# For multi-class evaluation for both PyTorch and Keras:
+# For multi-class evaluation for both PyTorch and Keras: -> Used for Keras with evaluate model below
 def evaluate_model_aggregated(model, X_test, y_test, n_samples):
     n_classes = 8
     preds_aggregated_by_mean = []
@@ -410,3 +410,11 @@ def evaluate_model_aggregated(model, X_test, y_test, n_samples):
         preds_aggregated_by_mean.append(preds)  # Append prob (or log-prob/other space)
         y_target_aggregated.append(y_target)  # Append y_target
     return np.concatenate(preds_aggregated_by_mean), np.concatenate(y_aggregated_prediction_by_mean), np.concatenate(y_target_aggregated)
+
+# Helper function to run evaluate_model_aggregated for Keras models
+
+def evaluate_model(model, X_test, y_test, n_samples):
+    all_y_pred = []
+    for n in range(n_samples):
+        all_y_pred.append(model.predict(X_test))
+    return all_y_pred
