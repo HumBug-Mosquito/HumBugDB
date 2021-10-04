@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sklearn
 from sklearn.metrics import confusion_matrix, classification_report
-from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import precision_recall_curve, plot_precision_recall_curve
 from sklearn.metrics import average_precision_score
 import sys
 import os
@@ -11,7 +11,7 @@ import config
 
 
 
-def get_results(y_pred_list, y_test, filename=None, show_plot_PE_MI=True, show_plot_roc=True, show_plot_cm=True):
+def get_results(y_pred_list, y_test, filename=None, show_plot_PE_MI=True, show_plot_roc=True, show_plot_cm=True, show_plot_pr=True):
     ''' Input: prediction list from model, y_test. y_test is a 1D Torch array (or 1D numpy for Keras).'''
 
 
@@ -53,6 +53,10 @@ def get_results(y_pred_list, y_test, filename=None, show_plot_PE_MI=True, show_p
             auc_list.append(sklearn.metrics.roc_auc_score(y_test, y[:,1]))
 
         print("std ROC AUC:", np.std(auc_list))
+
+
+    if show_plot_pr:
+        plot_pr("Test performance", y_test, np.mean(out, axis=0)[:,1], filename)
 
     if show_plot_cm:
         # Calculate confusion matricies
@@ -131,8 +135,22 @@ def plot_roc(name, labels, predictions, roc_score, filename, **kwargs):
     ax = plt.gca()
     ax.set_aspect('equal')
     plt.savefig(os.path.join(config.plot_dir, filename + '_ROC.pdf' ),bbox_inches='tight')
+    plt.show()
     
+
+def plot_pr(name, labels, predictions, filename):
+    # Plot precision-recall curves
     
+    area = average_precision_score(labels, predictions)
+    print('PR-AUC: ', area)
+    precision, recall, _ = precision_recall_curve(labels, predictions)
+    plt.plot(recall, precision)
+    plt.title('AUC={0:0.4f}'.format(area))
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.savefig(os.path.join(config.plot_dir, filename + '_PR.pdf' ),bbox_inches='tight')
+    plt.show()
+   
 
 def plot_confusion_matrix(cm, classes, std, filename=None,
                           normalize=False, cmap=plt.cm.Blues):
